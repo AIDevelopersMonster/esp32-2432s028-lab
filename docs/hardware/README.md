@@ -8,6 +8,7 @@ This directory contains a sample-specific hardware reference built from macro ph
 2. [PCB Component Atlas](02-pcb-component-atlas.md) — functional-zone component catalogue, package-marking evidence, board-level roles, electrical cautions, and verification tasks.
 3. [PCB Walkthrough](03-pcb-walkthrough.md) — guided signal-flow tour from USB and power through ESP32, display, touch, storage, audio, controls, and expansion connectors.
 4. [Connector Reference](04-connector-reference.md) — P1, P3, CN1 and P4 signal labels, electrical cautions, orientation rules, mechanical-family candidates, cable procurement, crimping, and fit-test protocol.
+5. [Power System](05-power-system.md) — USB 5-V entry, dual AMS1117-3.3 regulators, provisional rail map, load domains, thermal loss, back-powering hazards, brownout analysis, and measurement plan.
 
 ## Evidence policy
 

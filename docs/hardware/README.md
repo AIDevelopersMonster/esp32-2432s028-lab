@@ -6,6 +6,7 @@ This directory contains a sample-specific hardware reference built from macro ph
 
 1. [Hardware Overview](01-hardware-overview.md) — board identity, subsystem map, visible components, revision observations, cautions, and open verification tasks.
 2. [PCB Component Atlas](02-pcb-component-atlas.md) — functional-zone component catalogue, package-marking evidence, board-level roles, electrical cautions, and verification tasks.
+3. [PCB Walkthrough](03-pcb-walkthrough.md) — guided signal-flow tour from USB and power through ESP32, display, touch, storage, audio, controls, and expansion connectors.
 
 ## Evidence policy
 

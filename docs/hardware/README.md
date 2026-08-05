@@ -18,6 +18,7 @@ This directory contains a sample-specific hardware reference built from macro ph
 12. [Expansion GPIO and Bus System](12-expansion-gpio-and-bus-system.md) — P3 and CN1, GPIO35/22/21/27 capabilities, 3.3-V compatibility, I2C/UART/SPI options, external powering, protection, cable effects, diagnostics, and verification plan.
 13. [Wireless and Antenna System](13-wireless-and-antenna-system.md) — ESP-WROOM-32 Wi-Fi and Bluetooth capabilities, PCB antenna placement, enclosure and cable effects, power integrity, coexistence, security, range and throughput tests, diagnostics, and verification plan.
 14. [Mechanical Integration and Enclosure System](14-mechanical-integration-and-enclosure-system.md) — controlled dimensional survey, mounting, display and touch opening, connector and button access, antenna clearance, cable and speaker placement, thermal paths, environmental protection, tolerance stack-up, diagnostics, and verification plan.
+15. [System Pin Map and Resource Conflicts](15-system-pin-map-and-resource-conflicts.md) — consolidated GPIO ownership, input-only and boot-strapping restrictions, SPI/UART/I2C allocation, startup states, shared resources, safe reassignment gates, diagnostics, and verification plan.
 
 ## Evidence policy
 

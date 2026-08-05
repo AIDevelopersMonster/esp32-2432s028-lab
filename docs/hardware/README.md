@@ -24,6 +24,7 @@ This directory contains a sample-specific hardware reference built from macro ph
 18. [Diagnostics, Fault Recovery and Service Toolkit](18-diagnostics-fault-recovery-and-service-toolkit.md) — safe-mode entry, diagnostic firmware, serial and on-screen service consoles, staged subsystem isolation, logs, recovery images, test fixtures, guided troubleshooting, repair records, and return-to-service criteria.
 19. [Manufacturing, Procurement and Revision-Control System](19-manufacturing-procurement-and-revision-control-system.md) — supplier evidence, incoming-lot identity, revision fingerprints, substitutions, approved items, sampling, traceability, qualification inheritance, nonconformance control, provisioning, and procurement acceptance.
 20. [System Security, Provisioning and Trusted Update Architecture](20-system-security-provisioning-and-trusted-update-architecture.md) — threat model, device identity, credential lifecycle, controlled provisioning, signed releases, secure boot and Flash-encryption planning, OTA update and rollback, interface hardening, incident response, revocation, and decommissioning.
+21. [System Software Architecture and Driver Integration](21-system-software-architecture-and-driver-integration.md) — board profiles, hardware abstraction, driver and subsystem ownership, initialization phases, SPI arbitration, task and event models, configuration schemas, diagnostics integration, portability, testing, CI, and incremental migration from the current self-test.
 
 ## Evidence policy
 

@@ -18,6 +18,9 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Validate electrical truth profile
+        run: python tools/validate_board_profile.py
+
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 

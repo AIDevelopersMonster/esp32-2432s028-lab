@@ -29,6 +29,7 @@ This directory contains a sample-specific hardware reference built from macro ph
 23. [Observability, Telemetry and Fleet Operations](23-observability-telemetry-and-fleet-operations.md) — structured metrics, events and logs, health aggregation, heartbeat freshness, bounded telemetry queues, loss accounting, fleet inventory, dashboards, alerts, rollout observation, privacy, retention, remote diagnostics, capacity planning and operational runbooks.
 24. [Deployment, Site Integration and Operational Readiness](24-deployment-site-integration-and-operational-readiness.md) — deployment profiles, site surveys and readiness gates, power and network prerequisites, installation, commissioning, site acceptance, rollback readiness, operator handover, maintenance windows, disaster recovery and deployment closeout.
 25. [Verification, Validation and System Qualification](25-verification-validation-and-system-qualification.md) — requirements traceability, verification methods, validation scenarios, evidence levels, qualification matrices, regression control, anomaly disposition, release certification, claim ceilings and requalification triggers.
+26. [Programme Synthesis, Reference Baseline and Roadmap](26-programme-synthesis-reference-baseline-and-roadmap.md) — consolidated programme status, controlled hardware and software baselines, completed and open evidence, reference configurations, release families, implementation phases, governance, claim ladder, qualification path and programme exit criteria.
 
 ## Evidence policy
 

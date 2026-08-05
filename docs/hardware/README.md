@@ -11,6 +11,7 @@ This directory contains a sample-specific hardware reference built from macro ph
 5. [Power System](05-power-system.md) — USB 5-V entry, dual AMS1117-3.3 regulators, provisional rail map, load domains, thermal loss, back-powering hazards, brownout analysis, and measurement plan.
 6. [Display System](06-display-system.md) — TFT hardware path, current ILI9341-compatible profile, SPI/control signals, reset and backlight status, color and rotation tests, throughput, DMA, diagnostics, and controller-identification plan.
 7. [Touch System](07-touch-system.md) — photo-confirmed XPT2046, current GPIO profile, dedicated SPI path, IRQ behavior, raw X/Y/Z acquisition, calibration, filtering, rotation mapping, stress testing, and verification plan.
+8. [Audio System](08-audio-system.md) — 8002A amplifier path, current GPIO26 source profile, BTL-output safety, speaker selection, differential measurement, gain, distortion, power, thermal testing, and verification plan.
 
 ## Evidence policy
 

@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 from collections import defaultdict
 
 PROFILE = pathlib.Path("config/board_profiles/esp32-2432s028r-sample-a.json")
+HEADER = pathlib.Path("include/b1/BoardProfile.h")
 VALID_DIRECTIONS = {"input", "output", "bidirectional", "input-only"}
 VALID_EVIDENCE = {
     "software-tested",
@@ -25,6 +27,25 @@ FLASH_RESERVED = {6, 7, 8, 9, 10, 11}
 def fail(message: str) -> None:
     print(f"profile error: {message}", file=sys.stderr)
     raise SystemExit(1)
+
+
+def validate_header_sync(signals: list[dict[str, object]]) -> None:
+    text = HEADER.read_text(encoding="utf-8")
+    pairs = {
+        name: int(gpio)
+        for name, gpio in re.findall(r'\{"([a-z0-9_]+)",\s*(-?\d+),\s*Direction::', text)
+    }
+    expected = {str(signal["name"]): int(signal["gpio"]) for signal in signals}
+    if pairs != expected:
+        missing = sorted(expected.keys() - pairs.keys())
+        extra = sorted(pairs.keys() - expected.keys())
+        mismatched = sorted(
+            name for name in expected.keys() & pairs.keys() if expected[name] != pairs[name]
+        )
+        fail(
+            "typed header differs from JSON profile; "
+            f"missing={missing}, extra={extra}, gpio_mismatch={mismatched}"
+        )
 
 
 def main() -> None:
@@ -92,6 +113,7 @@ def main() -> None:
     if not unresolved:
         fail("unresolved evidence must be recorded explicitly")
 
+    validate_header_sync(signals)
     print(
         f"validated {data['profile_id']}: {len(signals)} signals, "
         f"{len(by_gpio)} GPIOs, {len(unresolved)} unresolved items"

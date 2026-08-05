@@ -20,6 +20,7 @@ This directory contains a sample-specific hardware reference built from macro ph
 14. [Mechanical Integration and Enclosure System](14-mechanical-integration-and-enclosure-system.md) — controlled dimensional survey, mounting, display and touch opening, connector and button access, antenna clearance, cable and speaker placement, thermal paths, environmental protection, tolerance stack-up, diagnostics, and verification plan.
 15. [System Pin Map and Resource Conflicts](15-system-pin-map-and-resource-conflicts.md) — consolidated GPIO ownership, input-only and boot-strapping restrictions, SPI/UART/I2C allocation, startup states, shared resources, safe reassignment gates, diagnostics, and verification plan.
 16. [System Bring-Up and Acceptance Test](16-system-bring-up-and-acceptance-test.md) — receiving inspection, controlled first power-up, staged subsystem activation, golden firmware, automated self-test, power and thermal measurements, regression, fault isolation, release records, and acceptance criteria.
+17. [Reliability, Maintenance and Lifecycle System](17-reliability-maintenance-and-lifecycle-system.md) — failure mechanisms, aging, preventive inspection, firmware and data recovery, connector and storage wear, spares, requalification triggers, maintenance records, retirement, and secure disposal.
 
 ## Evidence policy
 

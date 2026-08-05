@@ -21,6 +21,7 @@ This directory contains a sample-specific hardware reference built from macro ph
 15. [System Pin Map and Resource Conflicts](15-system-pin-map-and-resource-conflicts.md) — consolidated GPIO ownership, input-only and boot-strapping restrictions, SPI/UART/I2C allocation, startup states, shared resources, safe reassignment gates, diagnostics, and verification plan.
 16. [System Bring-Up and Acceptance Test](16-system-bring-up-and-acceptance-test.md) — receiving inspection, controlled first power-up, staged subsystem activation, golden firmware, automated self-test, power and thermal measurements, regression, fault isolation, release records, and acceptance criteria.
 17. [Reliability, Maintenance and Lifecycle System](17-reliability-maintenance-and-lifecycle-system.md) — failure mechanisms, aging, preventive inspection, firmware and data recovery, connector and storage wear, spares, requalification triggers, maintenance records, retirement, and secure disposal.
+18. [Diagnostics, Fault Recovery and Service Toolkit](18-diagnostics-fault-recovery-and-service-toolkit.md) — safe-mode entry, diagnostic firmware, serial and on-screen service consoles, staged subsystem isolation, logs, recovery images, test fixtures, guided troubleshooting, repair records, and return-to-service criteria.
 
 ## Evidence policy
 

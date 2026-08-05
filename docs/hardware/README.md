@@ -14,6 +14,7 @@ This directory contains a sample-specific hardware reference built from macro ph
 8. [Audio System](08-audio-system.md) — 8002A amplifier path, current GPIO26 source profile, BTL-output safety, speaker selection, differential measurement, gain, distortion, power, thermal testing, and verification plan.
 9. [Storage System](09-storage-system.md) — ESP-WROOM-32 program Flash, auxiliary W25Q32JV, microSD pin profile, safe backups, filesystem and card compatibility, throughput, corruption risks, and verification plan.
 10. [On-board I/O System](10-onboard-io-system.md) — RGB LED, LDR input, BOOT and RESET controls, active levels, ADC behavior, boot-strapping cautions, software interfaces, diagnostics, and verification plan.
+11. [USB Programming and Serial System](11-usb-programming-and-serial-system.md) — USB connector, CH340G, UART0, P1 service UART, automatic and manual bootloader entry, upload-speed qualification, serial monitoring, diagnostics, and verification plan.
 
 ## Evidence policy
 

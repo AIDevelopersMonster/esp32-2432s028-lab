@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "release": "v1.0.0-rc1",
+  "milestone": "B8",
+  "date": "2026-08-06",
+  "board_profile": "ESP32-2432S028R-photo-evidence-v1",
+  "hardware_scope": "single documented ESP32-2432S028R sample family",
+  "source_baseline": "main after B7 merge",
+  "firmware_entrypoint": "src/main.cpp",
+  "status": "RC_FROZEN_HARDWARE_ACCEPTANCE_PENDING",
+  "included_milestones": ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"],
+  "required_acceptance_matrix": "release/hardware-acceptance-matrix-v1.0.0-rc1.json",
+  "claim_ceiling": "Versioned laboratory release candidate only; hardware acceptance and qualification remain evidence-gated.",
+  "not_claimed": [
+    "universal CYD compatibility",
+    "production certification",
+    "regulatory compliance",
+    "field reliability",
+    "tamper-proof evidence",
+    "completed 24-hour soak campaign"
+  ]
+}

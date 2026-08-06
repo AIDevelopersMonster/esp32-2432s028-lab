@@ -41,6 +41,7 @@ class DiagnosticApp {
   FourPointCalibration calibration_;
   CalibrationData calibrationData_{};
   DiagnosticSnapshot snapshot_{};
+  RawPoint lastPressedRaw_{};
   uint32_t lastRunMs_ = 0;
   bool previousPressed_ = false;
 

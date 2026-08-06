@@ -152,7 +152,7 @@ python -m esptool --chip esp32 --port COM5 flash-id
 
 Эти команды не стирают и не записывают flash.
 
-### Реальный успешный пример
+### Реальный успешный пример: chip-id
 
 Команда была выполнена для платы на `COM12`:
 
@@ -192,6 +192,47 @@ Hard resetting via RTS pin...
 
 Предупреждение `ESP32 has no chip ID` является нормальным для классического ESP32: команда выводит MAC-адрес вместо отдельного chip ID.
 
+### Реальный успешный пример: flash-id
+
+Команда:
+
+```bat
+python -m esptool --chip esp32 --port COM12 flash-id
+```
+
+Полученный вывод:
+
+```text
+esptool v5.3.1
+Connected to ESP32 on COM12:
+Chip type:          ESP32-D0WD-V3 (revision v3.0)
+Features:           Wi-Fi, BT, Dual Core + LP Core, 240MHz, Vref calibration in eFuse, Coding Scheme None
+Crystal frequency:  40MHz
+MAC:                40:22:d8:xx:xx:xx
+
+Stub flasher running.
+
+Flash Memory Information:
+=========================
+Manufacturer: ef
+Device: 4016
+Detected flash size: 4MB
+Flash voltage set by a strapping pin: 3.3V
+
+Hard resetting via RTS pin...
+```
+
+Результат подтверждает:
+
+- flash доступна для чтения;
+- JEDEC manufacturer ID: `0xEF`;
+- JEDEC device ID: `0x4016`;
+- обнаруженный объём: `4 MB` (`0x400000` байт);
+- рабочее напряжение flash: `3,3 В`;
+- связь и автоматический сброс продолжают работать штатно.
+
+Команда `flash-id` ничего не стирает и не записывает.
+
 ## 10. Основной синтаксис
 
 Общая форма:
@@ -218,13 +259,33 @@ python -m esptool --chip esp32 --port COM5 --baud 460800 read-flash 0x0 0x1000 t
 
 ## 11. Безопасное тестовое чтение
 
-Считать первые 4096 байт:
+Считать первые 4096 байт два раза:
 
 ```bat
-python -m esptool --chip esp32 --port COM5 read-flash 0x0 0x1000 test-read.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x0 0x1000 test-read-1.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x0 0x1000 test-read-2.bin
 ```
 
-Команда только читает flash и подходит для первичной проверки.
+Проверить SHA-256 в PowerShell:
+
+```powershell
+Get-FileHash .\test-read-1.bin -Algorithm SHA256
+Get-FileHash .\test-read-2.bin -Algorithm SHA256
+```
+
+Хэши должны совпасть. Дополнительное побайтовое сравнение:
+
+```powershell
+cmd /c fc /b test-read-1.bin test-read-2.bin
+```
+
+Ожидаемый результат:
+
+```text
+FC: no differences encountered
+```
+
+Эти команды только читают flash и подходят для первичной проверки стабильности чтения.
 
 ## 12. Где хранить файлы
 
@@ -305,9 +366,11 @@ python -m esptool --chip esp32 --port COM5 --baud 115200 flash-id
 [ ] python -m esptool version работает
 [ ] python -m esptool --help работает
 [ ] COM-порт определён
-[ ] chip-id выполнен
-[ ] flash-id выполнен
-[ ] test-read.bin успешно считан
+[x] chip-id выполнен
+[x] flash-id выполнен
+[ ] test-read-1.bin успешно считан
+[ ] test-read-2.bin успешно считан
+[ ] SHA-256 двух чтений совпадает
 ```
 
 После прохождения этого списка можно переходить к полному резервному копированию заводской прошивки.

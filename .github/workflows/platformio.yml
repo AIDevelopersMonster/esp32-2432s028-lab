@@ -30,6 +30,9 @@ jobs:
       - name: Validate B4 evidence parser fixture
         run: python tools/parse_b4_evidence.py tests/fixtures/b4-evidence-pass.log --min-records 4 --require-sd
 
+      - name: Validate B5 archive parser fixture
+        run: python tools/parse_b5_archive.py tests/fixtures/b5-archive-pass.log --min-records 4 --require-sd
+
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 

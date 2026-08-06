@@ -24,6 +24,9 @@ jobs:
       - name: Validate B2 HIL parser fixture
         run: python tools/parse_b2_hil.py tests/fixtures/b2-hil-pass.log --require-sd
 
+      - name: Validate B3 diagnostic parser fixture
+        run: python tools/parse_b3_diagnostics.py tests/fixtures/b3-diagnostics-pass.log --require-sd --require-diagnostics
+
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 

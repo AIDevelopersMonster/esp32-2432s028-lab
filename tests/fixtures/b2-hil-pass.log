@@ -1,0 +1,4 @@
+ESP32-2432S028R B2
+B2 profile=esp32-2432s028r-sample-a seq=1 uptime_ms=750 display=PASS touch_sample=IDLE touch_pressed=0 touch_x=0 touch_y=0 touch_z=0 sd_present=1 sd_bytes=15931539456 cs_idle=1 owner=none owner_errors=0 tx_display=1 tx_touch=1 tx_storage=1
+B2 profile=esp32-2432s028r-sample-a seq=2 uptime_ms=1500 display=PASS touch_sample=PASS touch_pressed=1 touch_x=1820 touch_y=2140 touch_z=875 sd_present=1 sd_bytes=15931539456 cs_idle=1 owner=none owner_errors=0 tx_display=2 tx_touch=2 tx_storage=1
+B2 profile=esp32-2432s028r-sample-a seq=3 uptime_ms=2250 display=PASS touch_sample=IDLE touch_pressed=0 touch_x=12 touch_y=8 touch_z=0 sd_present=1 sd_bytes=15931539456 cs_idle=1 owner=none owner_errors=0 tx_display=3 tx_touch=3 tx_storage=1

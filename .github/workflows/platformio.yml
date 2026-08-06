@@ -33,6 +33,9 @@ jobs:
       - name: Validate B5 archive parser fixture
         run: python tools/parse_b5_archive.py tests/fixtures/b5-archive-pass.log --min-records 4 --require-sd
 
+      - name: Validate B6 service parser fixture
+        run: python tools/parse_b6_service.py tests/fixtures/b6-service-pass.log --min-records 4 --require-sd --require-export
+
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 

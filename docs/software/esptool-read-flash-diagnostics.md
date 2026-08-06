@@ -25,7 +25,7 @@
 
 ## Локализация внутри сектора `0x2000–0x2FFF`
 
-Чтение блоками по 256 байт дало:
+Чтение блоками по 256 байт:
 
 | Диапазон | Результат |
 |---|---|
@@ -35,14 +35,16 @@
 
 Результат для `0x2000–0x20FF` пока не зафиксирован в журнале.
 
-Разделение блока `0x2100–0x21FF` на половины по 128 байт:
+Разделение блока `0x2100–0x21FF`:
 
-| Диапазон | Результат |
-|---|---|
-| `0x2100–0x217F` | `PermissionError(13)` |
-| `0x2180–0x21FF` | результат пока не получен |
+| Диапазон | Размер | Результат |
+|---|---:|---|
+| `0x2100–0x217F` | 128 байт | `PermissionError(13)` |
+| `0x2180–0x21FF` | 128 байт | успешно |
+| `0x2100–0x213F` | 64 байта | `PermissionError(13)` |
+| `0x2140–0x217F` | 64 байта | успешно |
 
-Таким образом, сбой уже нельзя объяснить только размером операции: соседние блоки одинаковой длины ведут себя по-разному.
+Сбой локализован до диапазона `0x2100–0x213F` длиной 64 байта.
 
 ## Вывод
 
@@ -59,27 +61,21 @@ RAW_DATA_TRANSFER_FAILURE
 
 ## Следующая локализация
 
-Сначала получить результат второй половины:
+Разделить проблемные 64 байта на две половины:
 
 ```powershell
-python -m esptool --chip esp32 --port COM12 read-flash 0x2180 0x80 test-2180-0080.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x20 test-2100-0020.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x2120 0x20 test-2120-0020.bin
 ```
 
-Если `0x2180–0x21FF` читается, делить только проблемную половину `0x2100–0x217F`:
-
-```powershell
-python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x40 test-2100-0040.bin
-python -m esptool --chip esp32 --port COM12 read-flash 0x2140 0x40 test-2140-0040.bin
-```
-
-Если обе половины по `0x80` падают, перейти к блокам по 16 байт:
+Если одна половина падает, разделить её на блоки по 16 байт. Например, если проблемной окажется `0x2100–0x211F`:
 
 ```powershell
 python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x10 test-2100-0010.bin
 python -m esptool --chip esp32 --port COM12 read-flash 0x2110 0x10 test-2110-0010.bin
-python -m esptool --chip esp32 --port COM12 read-flash 0x2120 0x10 test-2120-0010.bin
-python -m esptool --chip esp32 --port COM12 read-flash 0x2130 0x10 test-2130-0010.bin
 ```
+
+После определения минимального проблемного диапазона повторить точно такой же адрес и размер с `--no-stub`, чтобы проверить, воспроизводится ли сбой в ROM-загрузчике без flasher stub.
 
 Полный дамп пока не запускать.
 
@@ -88,8 +84,7 @@ python -m esptool --chip esp32 --port COM12 read-flash 0x2130 0x10 test-2130-001
 ```text
 FLASH_SIZE_CONFIRMED_4MB
 PROBLEM_REGIONS_VERIFY_SUCCESS
-RAW_READ_FAILURE_NARROWED_TO_0x2100_0x217F
-SECOND_HALF_0x2180_PENDING
+RAW_READ_FAILURE_NARROWED_TO_0x2100_0x213F
 FULL_BACKUP_BLOCKED_BY_RAW_READ_FAILURE
 ROOT_CAUSE_NOT_YET_ESTABLISHED
 ```

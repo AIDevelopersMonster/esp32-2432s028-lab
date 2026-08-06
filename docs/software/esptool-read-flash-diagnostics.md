@@ -21,65 +21,71 @@ WriteFile failed (PermissionError 13)
 
 Один и тот же адрес мог сначала завершиться ошибкой, а затем успешно считаться. Поэтому гипотеза об особом или недоступном диапазоне Flash была отклонена.
 
-После замены USB-кабеля успешно выполнено непрерывное чтение 65536 байт:
+После замены USB-кабеля сначала успешно выполнено непрерывное чтение 65536 байт на `57600`, а затем два полных чтения всей Flash на `115200`.
 
-```powershell
-python -m esptool --chip esp32 --port COM12 --baud 57600 `
-  --after no-reset `
-  read-flash 0x0 0x10000 slow-64k-57600.bin
-```
-
-Результат:
+Первый полный дамп:
 
 ```text
-Read 65536 bytes from 0x00000000 in 11.8 seconds (44.3 kbit/s)
-Staying in bootloader.
+Read 4194304 bytes from 0x00000000 in 382.5 seconds (87.7 kbit/s)
+esp32-2432s028-full-1.bin
+```
+
+Второй полный дамп:
+
+```text
+Read 4194304 bytes from 0x00000000 in 387.8 seconds (86.5 kbit/s)
+esp32-2432s028-full-2.bin
+```
+
+Размер каждого файла подтверждён:
+
+```text
+4194304 bytes
 ```
 
 ## Вывод
 
-Наиболее сильное экспериментальное объяснение — нестабильный старый USB-кабель или контакт в USB-тракте.
+Наиболее сильное экспериментальное объяснение — неисправный или неподходящий старый USB-кабель либо нестабильный контакт в USB-тракте.
 
 ```text
 FLASH_ADDRESS_FAILURE_RETRACTED
 FLASH_SIZE_CONFIRMED_4MB
-64KB_READ_SUCCESS_AFTER_CABLE_REPLACEMENT
-USB_CABLE_OR_CONNECTION_PATH_WAS_PRIMARY_SUSPECT
-FULL_BACKUP_VALIDATION_PENDING
+TWO_COMPLETE_4MB_READS_SUCCEEDED_AFTER_CABLE_REPLACEMENT
+USB_CABLE_OR_CONNECTION_PATH_CONFIRMED_AS_PRIMARY_CAUSE
+HASH_COMPARISON_PENDING
 ```
 
-Один успешный тест 64 KB ещё не доказывает устойчивость полного чтения 4 MB. Перед любыми операциями записи нужны два полных совпадающих дампа.
+Успешные полные чтения на `115200` показывают, что снижать скорость до `57600` для этой связки после замены кабеля не требуется.
 
-## Следующий шаг
+## Финальная проверка дампов
 
-Поскольку команда использовала `--after no-reset`, сначала нажать `RESET/EN` или переподключить питание.
-
-Затем выполнить первый полный дамп на проверенной скорости `57600`:
+Выполнить:
 
 ```powershell
-Remove-Item .\esp32-2432s028-full-1.bin -ErrorAction SilentlyContinue
+Get-FileHash .\esp32-2432s028-full-1.bin -Algorithm SHA256
+Get-FileHash .\esp32-2432s028-full-2.bin -Algorithm SHA256
 
-python -m esptool --chip esp32 --port COM12 --baud 57600 `
-  read-flash 0x0 0x400000 esp32-2432s028-full-1.bin
+(Get-FileHash .\esp32-2432s028-full-1.bin -Algorithm SHA256).Hash -eq `
+(Get-FileHash .\esp32-2432s028-full-2.bin -Algorithm SHA256).Hash
 ```
 
-После завершения проверить размер:
-
-```powershell
-Get-Item .\esp32-2432s028-full-1.bin | Select-Object Name, Length, LastWriteTime
-```
-
-Ожидается:
+Ожидаемый логический результат:
 
 ```text
-4194304
+True
 ```
 
-После первого успешного полного чтения выполнить второй независимый дамп и сравнить SHA-256.
+Дополнительная побайтовая проверка:
+
+```powershell
+cmd /c fc /b esp32-2432s028-full-1.bin esp32-2432s028-full-2.bin
+```
+
+До совпадения SHA-256 статус резервной копии остаётся незавершённым.
 
 ## Практический урок
 
-При повторяющихся `PermissionError(13)` и обрыве на одном и том же объёме данных сначала следует заменить USB-кабель на короткий заведомо исправный кабель передачи данных, а уже затем исследовать драйвер, скорость, адреса Flash и USB-UART.
+При повторяющихся `PermissionError(13)` и обрыве на одном и том же объёме данных сначала следует заменить USB-кабель на короткий заведомо исправный кабель передачи данных. Только после этого имеет смысл исследовать драйвер, скорость, адреса Flash и USB-UART.
 
 ## Официальные источники
 

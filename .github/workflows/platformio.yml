@@ -42,8 +42,14 @@ jobs:
       - name: Build reproducible B7 fixture pack
         run: python tools/build_b7_qualification_pack.py tests/fixtures/b7-soak-pass.log --output build/b7-pack --board-id fixture-board --firmware-commit fixture-commit --card-id fixture-card
 
+      - name: Validate B8 release candidate files
+        run: python tools/validate_b8_release.py
+
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 
       - name: Build firmware
         run: pio run
+
+      - name: Build inspectable B8 fixture release bundle
+        run: python tools/build_b8_release_bundle.py --firmware .pio/build/esp32-2432s028r/firmware.bin --output build/b8-release --commit ${{ github.sha }} --board-id ci-fixture --qualification-pack build/b7-pack

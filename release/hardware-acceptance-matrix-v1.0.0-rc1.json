@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "release": "v1.0.0-rc1",
+  "allowed_statuses": ["PASS", "FAIL", "NOT_RUN", "BLOCKED"],
+  "default_status": "NOT_RUN",
+  "items": [
+    {"id":"HW-01","area":"identity","requirement":"Board, firmware commit, power supply and microSD identities recorded","evidence":"qualification manifest","status":"NOT_RUN"},
+    {"id":"HW-02","area":"display","requirement":"TFT initializes in declared 320x240 landscape orientation","evidence":"photo and serial capture","status":"NOT_RUN"},
+    {"id":"HW-03","area":"touch","requirement":"Four-point calibration persists and mapped points remain bounded","evidence":"B3 capture and calibration record","status":"NOT_RUN"},
+    {"id":"HW-04","area":"storage","requirement":"microSD probe, archive append and bounded rotation pass","evidence":"B5 archive files and parser report","status":"NOT_RUN"},
+    {"id":"HW-05","area":"spi","requirement":"Zero ownership violations and idle software-visible chip selects","evidence":"B2-B7 telemetry","status":"NOT_RUN"},
+    {"id":"HW-06","area":"configuration","requirement":"Dual-slot configuration recovery selects only checksum-valid generations","evidence":"B4 power-cut matrix","status":"NOT_RUN"},
+    {"id":"HW-07","area":"boot","requirement":"Boot ledger, healthy marker and crash-loop containment behave as declared","evidence":"B5 reset campaign","status":"NOT_RUN"},
+    {"id":"HW-08","area":"watchdog","requirement":"Watchdog stall injection produces expected reset evidence","evidence":"B6 fault capture","status":"NOT_RUN"},
+    {"id":"HW-09","area":"service","requirement":"Service export bundle is created and inspectable","evidence":"B6 service directory and manifest","status":"NOT_RUN"},
+    {"id":"HW-10","area":"soak","requirement":"24-hour predeclared soak gate passes","evidence":"B7 qualification pack","status":"NOT_RUN"},
+    {"id":"HW-11","area":"repeatability","requirement":"Declared acceptance subset repeated after three cold starts","evidence":"three independent run manifests","status":"NOT_RUN"},
+    {"id":"HW-12","area":"release","requirement":"All release files validate and exact firmware binary hash is retained","evidence":"B8 release bundle","status":"NOT_RUN"}
+  ]
+}

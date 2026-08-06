@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "release": "v1.0.0-rc1",
+  "board_id": "cyd-r-sample-01",
+  "allowed_statuses": ["PASS", "FAIL", "NOT_RUN", "BLOCKED"],
+  "default_status": "NOT_RUN",
+  "items": [
+    {"id":"HW-01","area":"identity","requirement":"Board, firmware commit, firmware hash, power supply, USB-UART adapter and microSD identities recorded","evidence":"campaign-manifest.json; evidence/HW-01/","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-02","area":"display","requirement":"TFT initializes in declared 320x240 landscape orientation and remains visually stable","evidence":"evidence/HW-02/display-photo.jpg; evidence/HW-02/serial.log","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-03","area":"touch","requirement":"Four-point calibration persists and mapped points remain bounded after reset","evidence":"evidence/HW-03/b3-calibration.log; evidence/HW-03/calibration-photo.jpg","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-04","area":"storage","requirement":"microSD probe, archive append and bounded rotation pass","evidence":"evidence/HW-04/b5-storage.log; evidence/HW-04/b5-current.log; evidence/HW-04/b5-previous.log; evidence/HW-04/parser-report.txt","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-05","area":"spi","requirement":"Zero ownership violations and idle software-visible chip selects across accepted runs","evidence":"evidence/HW-05/spi-summary.txt; referenced B2-B7 logs","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-06","area":"configuration","requirement":"Dual-slot configuration recovery selects only checksum-valid previous or new generations at declared interruption points","evidence":"evidence/HW-06/power-cut-matrix.csv; evidence/HW-06/b4-captures/","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-07","area":"boot","requirement":"Boot ledger, healthy marker and three-boot crash-loop containment behave as declared","evidence":"evidence/HW-07/reset-campaign.csv; evidence/HW-07/b5-reset-captures/","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-08","area":"watchdog","requirement":"Recovery-gated watchdog stall injection produces expected reset evidence","evidence":"evidence/HW-08/pre-stall.log; evidence/HW-08/post-reset.log; evidence/HW-08/result.txt","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-09","area":"service","requirement":"Recovery-gated service export bundle is created and inspectable","evidence":"evidence/HW-09/b6-export.log; evidence/HW-09/service/manifest.txt; evidence/HW-09/service/","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-10","area":"soak","requirement":"24-hour predeclared soak gate passes without unexpected reset and within declared heap-drop limit","evidence":"evidence/HW-10/qualification-pack/; evidence/HW-10/parser-report.txt","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-11","area":"repeatability","requirement":"Declared acceptance subset passes after three independent cold starts","evidence":"evidence/HW-11/cold-start-01/; evidence/HW-11/cold-start-02/; evidence/HW-11/cold-start-03/; evidence/HW-11/summary.json","status":"NOT_RUN","operator_notes":""},
+    {"id":"HW-12","area":"release","requirement":"All release files validate and exact accepted firmware binary hash is retained","evidence":"evidence/HW-12/release-bundle/; evidence/HW-12/validator-report.txt","status":"NOT_RUN","operator_notes":""}
+  ]
+}

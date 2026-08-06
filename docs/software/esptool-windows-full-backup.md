@@ -24,20 +24,76 @@
 
 ## Два независимых полных чтения
 
+Начать с более совместимой скорости `115200`:
+
 ```powershell
-python -m esptool --chip esp32 --port COM12 --baud 460800 read-flash 0x0 0x400000 esp32-2432s028-full-1.bin
-python -m esptool --chip esp32 --port COM12 --baud 460800 read-flash 0x0 0x400000 esp32-2432s028-full-2.bin
+python -m esptool --chip esp32 --port COM12 --baud 115200 read-flash 0x0 0x400000 esp32-2432s028-full-1.bin
+python -m esptool --chip esp32 --port COM12 --baud 115200 read-flash 0x0 0x400000 esp32-2432s028-full-2.bin
 ```
+
+После успешной проверки можно пробовать `230400`. Скорость `460800` подходит не каждому сочетанию платы, USB-UART, драйвера, кабеля и USB-порта.
 
 Вместо явного размера esptool также допускает автоматическое определение:
 
 ```powershell
-python -m esptool --chip esp32 --port COM12 --baud 460800 read-flash 0 ALL esp32-2432s028-full-1.bin
+python -m esptool --chip esp32 --port COM12 --baud 115200 read-flash 0 ALL esp32-2432s028-full-1.bin
 ```
 
 Для повторяемости в данном паспорте используется явный размер `0x400000`, уже подтверждённый командой `flash-id`.
 
-Если на скорости `460800` возникают ошибки, повторить чтение на `115200`.
+## Ошибка `GetOverlappedResult failed (PermissionError 13)`
+
+Зафиксирован реальный случай: соединение установилось, flasher stub запустился, скорость была переключена на `460800`, но после чтения первых 8192 байт Windows/pySerial потеряли доступ к COM-порту:
+
+```text
+A serial exception error occurred:
+GetOverlappedResult failed (PermissionError(13, 'Отказано в доступе.', None, 5))
+```
+
+Это не означает повреждение Flash. Чтение было прервано, а операция ничего не записывала.
+
+Наиболее вероятные причины:
+
+- нестабильная работа USB-UART или его драйвера на повышенной скорости;
+- кратковременное отключение USB-устройства;
+- плохой или длинный USB-кабель;
+- USB-хаб;
+- другой процесс открыл COM-порт;
+- энергосбережение USB в Windows.
+
+### Что сделать
+
+1. Удалить неполный файл:
+
+```powershell
+Remove-Item .\esp32-2432s028-full-1.bin -ErrorAction SilentlyContinue
+```
+
+2. Закрыть Arduino Serial Monitor, PlatformIO Monitor, PuTTY и другие программы, которые могут использовать `COM12`.
+
+3. Отключить и снова подключить плату, проверить, что она осталась на `COM12`.
+
+4. Повторить чтение на `115200`:
+
+```powershell
+python -m esptool --chip esp32 --port COM12 --baud 115200 read-flash 0x0 0x400000 esp32-2432s028-full-1.bin
+```
+
+5. Если чтение снова прерывается:
+
+- использовать другой USB-порт без хаба;
+- заменить кабель на короткий качественный кабель передачи данных;
+- обновить или переустановить драйвер USB-UART;
+- временно отключить экономию питания для USB Root Hub в Диспетчере устройств;
+- попробовать скорость `57600`.
+
+Диагностическая команда с подробным трассированием:
+
+```powershell
+python -m esptool --trace --chip esp32 --port COM12 --baud 115200 read-flash 0x0 0x10000 trace-test.bin
+```
+
+`--trace` создаёт большой вывод и нужен только при повторяющейся ошибке.
 
 ## Проверка размеров
 
@@ -50,6 +106,8 @@ Get-Item .\esp32-2432s028-full-1.bin, .\esp32-2432s028-full-2.bin | Select-Objec
 ```text
 4194304
 ```
+
+Файл меньшего размера считается незавершённым и не является резервной копией.
 
 ## Проверка SHA-256
 
@@ -152,3 +210,8 @@ erase-region
 ```
 
 Полный дамп следует хранить минимум в двух независимых местах. Не публиковать его без проверки на пароли, токены, сетевые настройки и персональные данные.
+
+## Официальная диагностика
+
+- <https://docs.espressif.com/projects/esptool/en/latest/esp32/troubleshooting.html>
+- <https://docs.espressif.com/projects/esptool/en/latest/esp32/esptool/basic-options.html>

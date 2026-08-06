@@ -35,6 +35,13 @@
 
 Результат для `0x2000–0x20FF` пока не зафиксирован в журнале.
 
+Разделение блока `0x2100–0x21FF` на половины по 128 байт:
+
+| Диапазон | Результат |
+|---|---|
+| `0x2100–0x217F` | `PermissionError(13)` |
+| `0x2180–0x21FF` | результат пока не получен |
+
 Таким образом, сбой уже нельзя объяснить только размером операции: соседние блоки одинаковой длины ведут себя по-разному.
 
 ## Вывод
@@ -50,22 +57,22 @@ RAW_DATA_TRANSFER_FAILURE
 
 Это пока рабочая гипотеза, а не установленная первопричина.
 
-## Следующая локализация блока `0x2100–0x21FF`
+## Следующая локализация
 
-Разделить проблемный блок на две половины по 128 байт:
+Сначала получить результат второй половины:
 
 ```powershell
-python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x80 test-2100-0080.bin
 python -m esptool --chip esp32 --port COM12 read-flash 0x2180 0x80 test-2180-0080.bin
 ```
 
-Интерпретация:
+Если `0x2180–0x21FF` читается, делить только проблемную половину `0x2100–0x217F`:
 
-- если падает только одна половина — продолжить делить именно её;
-- если обе половины читаются, а весь блок `0x100` не читается — сбой зависит от размера или объединённой последовательности данных;
-- если обе половины падают — проверить блоки по 16 байт.
+```powershell
+python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x40 test-2100-0040.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x2140 0x40 test-2140-0040.bin
+```
 
-Следующий уровень деления при необходимости:
+Если обе половины по `0x80` падают, перейти к блокам по 16 байт:
 
 ```powershell
 python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x10 test-2100-0010.bin
@@ -81,7 +88,8 @@ python -m esptool --chip esp32 --port COM12 read-flash 0x2130 0x10 test-2130-001
 ```text
 FLASH_SIZE_CONFIRMED_4MB
 PROBLEM_REGIONS_VERIFY_SUCCESS
-RAW_READ_FAILURE_NARROWED_TO_0x2100_BLOCK
+RAW_READ_FAILURE_NARROWED_TO_0x2100_0x217F
+SECOND_HALF_0x2180_PENDING
 FULL_BACKUP_BLOCKED_BY_RAW_READ_FAILURE
 ROOT_CAUSE_NOT_YET_ESTABLISHED
 ```

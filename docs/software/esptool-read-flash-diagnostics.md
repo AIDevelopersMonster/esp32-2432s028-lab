@@ -45,8 +45,24 @@
 | `0x2140–0x217F` | 64 байта | успешно |
 | `0x2100–0x211F` | 32 байта | `PermissionError(13)` |
 | `0x2120–0x213F` | 32 байта | успешно |
+| `0x2100–0x210F` | 16 байт | `PermissionError(13)` |
+| `0x2110–0x211F` | 16 байт | успешно, подтверждено дважды |
 
-Сбой локализован до первых 32 байт диапазона `0x2100–0x211F`.
+Сбой локализован до первых 16 байт диапазона `0x2100–0x210F`.
+
+## Состояние платы после сбоя
+
+После успешного чтения esptool выполняет `Hard resetting via RTS pin...`, после чего снова запускается пользовательская программа платы.
+
+После сбоя наблюдаются:
+
+- погасший дисплей;
+- слабое красное свечение RGB-светодиода;
+- отсутствие возврата к пользовательской программе до следующего успешного сброса или ручного RESET/EN.
+
+Это согласуется не с зависанием уже работающей пользовательской программы, а с тем, что esptool перед операцией переводит ESP32 в serial bootloader, а после ошибки не удаётся надёжно вернуть плату в обычный режим загрузки. В таком состоянии пользовательская программа вообще не выполняется.
+
+Слабое свечение RGB следует считать наблюдаемым состоянием GPIO во время serial bootloader/stub, а не диагностическим кодом ошибки, пока это отдельно не подтверждено.
 
 ## Вывод
 
@@ -59,27 +75,46 @@ RAW_DATA_TRANSFER_FAILURE
 
 Проблема не является выходом за физический размер Flash и не похожа на запрет чтения отдельных секторов. Наблюдения указывают на зависимость сбоя от конкретного диапазона или содержащейся в нём последовательности байтов при передаче через `read-flash`.
 
-Это пока рабочая гипотеза, а не установленная первопричина. Перед окончательным выводом нужно подтвердить повторяемость на одинаковых адресах несколькими чтениями.
+Состояние дисплея и RGB после ошибки является, вероятнее всего, следствием неуспешного выхода из serial bootloader, а не причиной сбоя чтения.
 
-## Следующая локализация
+Это пока рабочая гипотеза, а не установленная первопричина.
 
-Разделить проблемные 32 байта на две половины:
+## Следующий решающий тест
 
-```powershell
-python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x10 test-2100-0010.bin
-python -m esptool --chip esp32 --port COM12 read-flash 0x2110 0x10 test-2110-0010.bin
-```
+Нужно отличить ошибку чтения от ошибки автоматического возврата из bootloader.
 
-После этого повторить проблемную и исправную команды по три раза, чтобы отличить адресную зависимость от случайного сбоя COM-порта.
-
-Например, если `0x2100–0x210F` падает, а `0x2110–0x211F` читается:
+Сначала удалить старый файл, чтобы не принять его за новый результат:
 
 ```powershell
-1..3 | ForEach-Object { python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x10 "repeat-bad-$_.bin" }
-1..3 | ForEach-Object { python -m esptool --chip esp32 --port COM12 read-flash 0x2110 0x10 "repeat-good-$_.bin" }
+Remove-Item .\probe-2100.bin, .\trace-2100.txt -ErrorAction SilentlyContinue
 ```
 
-После определения минимального проблемного диапазона повторить точно такой же адрес и размер с `--no-stub`, чтобы проверить ROM-загрузчик без flasher stub.
+Затем выполнить проблемное чтение без автоматического сброса после команды и с трассировкой:
+
+```powershell
+python -m esptool --trace --chip esp32 --port COM12 --after no-reset read-flash 0x2100 0x10 probe-2100.bin 2>&1 | Tee-Object .\trace-2100.txt
+```
+
+Проверить, появился ли файл:
+
+```powershell
+Get-Item .\probe-2100.bin -ErrorAction SilentlyContinue | Select-Object Name, Length
+```
+
+Интерпретация:
+
+- файл отсутствует или имеет размер меньше 16 байт — сбой происходит в передаче данных чтения;
+- файл имеет ровно 16 байт, а ошибка исчезла — основной сбой находится в пути автоматического hard reset через RTS;
+- файл имеет 16 байт, но команда всё равно выдаёт pySerial-ошибку — нужно смотреть конец `trace-2100.txt`, чтобы определить точную операцию.
+
+Поскольку `--after no-reset` намеренно оставляет ESP32 в загрузчике, после теста нужно нажать RESET/EN или переподключить питание.
+
+После этого повторить тот же минимальный диапазон без flasher stub:
+
+```powershell
+Remove-Item .\probe-2100-rom.bin -ErrorAction SilentlyContinue
+python -m esptool --trace --chip esp32 --port COM12 --after no-reset --no-stub read-flash --flash-size 4MB 0x2100 0x10 probe-2100-rom.bin
+```
 
 Полный дамп пока не запускать.
 
@@ -88,8 +123,10 @@ python -m esptool --chip esp32 --port COM12 read-flash 0x2110 0x10 test-2110-001
 ```text
 FLASH_SIZE_CONFIRMED_4MB
 PROBLEM_REGIONS_VERIFY_SUCCESS
-RAW_READ_FAILURE_NARROWED_TO_0x2100_0x211F
-REPEATABILITY_A_B_TEST_PENDING
+RAW_READ_FAILURE_NARROWED_TO_0x2100_0x210F
+GOOD_CONTROL_0x2110_CONFIRMED_TWICE
+BOARD_REMAINS_IN_SERIAL_BOOTLOADER_AFTER_FAILURE
+RESET_PATH_VS_READ_PATH_TEST_PENDING
 FULL_BACKUP_BLOCKED_BY_RAW_READ_FAILURE
 ROOT_CAUSE_NOT_YET_ESTABLISHED
 ```
@@ -97,5 +134,6 @@ ROOT_CAUSE_NOT_YET_ESTABLISHED
 ## Официальные источники
 
 - <https://docs.espressif.com/projects/esptool/en/latest/esp32/esptool/basic-commands.html>
+- <https://docs.espressif.com/projects/esptool/en/latest/esp32/esptool/advanced-options.html>
 - <https://docs.espressif.com/projects/esptool/en/latest/esp32/advanced-topics/serial-protocol.html>
 - <https://docs.espressif.com/projects/esptool/en/latest/esp32/troubleshooting.html>

@@ -47,6 +47,7 @@ const DiagnosticSnapshot& DiagnosticApp::run(uint32_t nowMs) {
   spi_.readTouchRaw(x, y, z);
   snapshot_.raw = RawPoint{x, y, z};
   snapshot_.touchPressed = digitalRead(cyd::TOUCH_IRQ_PIN) == LOW || z > 100;
+  if (snapshot_.touchPressed) lastPressedRaw_ = snapshot_.raw;
 
   if (snapshot_.mode == UiMode::Calibration) {
     if (previousPressed_ && !snapshot_.touchPressed) handleCalibrationRelease();
@@ -65,7 +66,7 @@ const DiagnosticSnapshot& DiagnosticApp::run(uint32_t nowMs) {
 }
 
 void DiagnosticApp::handleCalibrationRelease() {
-  if (!calibration_.add(snapshot_.raw)) return;
+  if (!calibration_.add(lastPressedRaw_)) return;
   if (!calibration_.complete()) {
     drawCalibrationTarget();
     return;

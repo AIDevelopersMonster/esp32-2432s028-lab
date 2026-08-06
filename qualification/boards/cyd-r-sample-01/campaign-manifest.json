@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "campaign": "b8-v1.0.0-rc1-cyd-r-sample-01",
+  "release": "v1.0.0-rc1",
+  "board_profile": "esp32-2432s028r",
+  "board_id": "cyd-r-sample-01",
+  "board_markings": "TO_BE_RECORDED",
+  "firmware_commit": "TO_BE_RECORDED_AFTER_FINAL_BUILD",
+  "firmware_sha256": "TO_BE_RECORDED_AFTER_FINAL_BUILD",
+  "power_supply_id": "TO_BE_RECORDED",
+  "power_supply_rating": "TO_BE_RECORDED",
+  "usb_uart_adapter_id": "TO_BE_RECORDED",
+  "microsd_id": "TO_BE_RECORDED",
+  "microsd_capacity": "TO_BE_RECORDED",
+  "operator": "TO_BE_RECORDED",
+  "start_utc": "TO_BE_RECORDED",
+  "end_utc": "TO_BE_RECORDED",
+  "ambient_conditions": "TO_BE_RECORDED",
+  "predeclared_heap_drop_bytes": 32768,
+  "status": "PREPARED_NOT_STARTED",
+  "notes": "Do not replace evidence after a run. Add a new run directory or RC when firmware or criteria change."
+}

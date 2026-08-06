@@ -23,6 +23,20 @@
 - `0x7000`;
 - `0x8000`.
 
+## Локализация внутри сектора `0x2000–0x2FFF`
+
+Чтение блоками по 256 байт дало:
+
+| Диапазон | Результат |
+|---|---|
+| `0x2100–0x21FF` | `PermissionError(13)` |
+| `0x2200–0x22FF` | успешно |
+| `0x2300–0x23FF` | успешно |
+
+Результат для `0x2000–0x20FF` пока не зафиксирован в журнале.
+
+Таким образом, сбой уже нельзя объяснить только размером операции: соседние блоки одинаковой длины ведут себя по-разному.
+
 ## Вывод
 
 `digest mismatch` означает, что esptool смог обратиться к указанной области Flash и сравнить её с локальным файлом. Следовательно:
@@ -32,34 +46,42 @@ FLASH_REGION_ACCESSIBLE
 RAW_DATA_TRANSFER_FAILURE
 ```
 
-Проблема не является выходом за физический размер Flash и не похожа на запрет чтения отдельных секторов. Сбой проявляется при передаче полного содержимого некоторых областей на компьютер через `read-flash`.
+Проблема не является выходом за физический размер Flash и не похожа на запрет чтения отдельных секторов. Наблюдения указывают на зависимость сбоя от конкретного диапазона или содержащейся в нём последовательности байтов при передаче через `read-flash`.
 
-## Следующая локализация
+Это пока рабочая гипотеза, а не установленная первопричина.
 
-Не запускать полный дамп. Сначала разделить проблемный сектор `0x2000–0x2FFF` на меньшие части:
+## Следующая локализация блока `0x2100–0x21FF`
 
-```powershell
-python -m esptool --chip esp32 --port COM12 read-flash 0x2000 0x100 test-2000-0100.bin
-python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x100 test-2100-0100.bin
-python -m esptool --chip esp32 --port COM12 read-flash 0x2200 0x100 test-2200-0100.bin
-python -m esptool --chip esp32 --port COM12 read-flash 0x2300 0x100 test-2300-0100.bin
-```
-
-Если эти чтения успешны, увеличить размер последовательно:
+Разделить проблемный блок на две половины по 128 байт:
 
 ```powershell
-python -m esptool --chip esp32 --port COM12 read-flash 0x2000 0x200 test-2000-0200.bin
-python -m esptool --chip esp32 --port COM12 read-flash 0x2000 0x400 test-2000-0400.bin
-python -m esptool --chip esp32 --port COM12 read-flash 0x2000 0x800 test-2000-0800.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x80 test-2100-0080.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x2180 0x80 test-2180-0080.bin
 ```
 
-Цель — установить, зависит ли сбой от конкретного поддиапазона, размера ответа или содержимого передаваемых данных.
+Интерпретация:
+
+- если падает только одна половина — продолжить делить именно её;
+- если обе половины читаются, а весь блок `0x100` не читается — сбой зависит от размера или объединённой последовательности данных;
+- если обе половины падают — проверить блоки по 16 байт.
+
+Следующий уровень деления при необходимости:
+
+```powershell
+python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x10 test-2100-0010.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x2110 0x10 test-2110-0010.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x2120 0x10 test-2120-0010.bin
+python -m esptool --chip esp32 --port COM12 read-flash 0x2130 0x10 test-2130-0010.bin
+```
+
+Полный дамп пока не запускать.
 
 ## Статус
 
 ```text
 FLASH_SIZE_CONFIRMED_4MB
 PROBLEM_REGIONS_VERIFY_SUCCESS
+RAW_READ_FAILURE_NARROWED_TO_0x2100_BLOCK
 FULL_BACKUP_BLOCKED_BY_RAW_READ_FAILURE
 ROOT_CAUSE_NOT_YET_ESTABLISHED
 ```

@@ -36,6 +36,12 @@ jobs:
       - name: Validate B6 service parser fixture
         run: python tools/parse_b6_service.py tests/fixtures/b6-service-pass.log --min-records 4 --require-sd --require-export
 
+      - name: Validate B7 soak parser fixture
+        run: python tools/parse_b7_soak.py tests/fixtures/b7-soak-pass.log --min-records 4 --min-uptime-ms 20000 --require-sd
+
+      - name: Build reproducible B7 fixture pack
+        run: python tools/build_b7_qualification_pack.py tests/fixtures/b7-soak-pass.log --output build/b7-pack --board-id fixture-board --firmware-commit fixture-commit --card-id fixture-card
+
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 

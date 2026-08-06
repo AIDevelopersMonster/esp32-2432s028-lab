@@ -3,6 +3,7 @@
 
 #include <b2/SpiCoordinator.h>
 #include <b7/QualificationApp.h>
+#include <b8/ReleaseIdentity.h>
 
 namespace {
 TFT_eSPI display;
@@ -14,7 +15,9 @@ void setup() {
   Serial.begin(115200);
   delay(300);
   app.begin();
-  Serial.println("ESP32-2432S028R B7");
+  Serial.printf("ESP32-2432S028R %s release=%s status=%s date=%s\n",
+                cyd::b8::MILESTONE, cyd::b8::RELEASE_VERSION,
+                cyd::b8::BASELINE_STATUS, cyd::b8::RELEASE_DATE);
 }
 
 void loop() {

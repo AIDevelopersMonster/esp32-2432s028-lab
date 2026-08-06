@@ -2,79 +2,84 @@
 
 Проверено на ESP32-2432S028 с `ESP32-D0WD-V3`, Flash 4 MB и `esptool v5.3.1` под Windows.
 
-## Ключевое исправление вывода
+## Итог эксперимента
 
-Один и тот же диапазон `0x2100–0x210F` сначала многократно давал `PermissionError(13)`, а затем был успешно считан той же командой:
+До замены USB-кабеля чтение регулярно обрывалось после первых 8192 байт с ошибками pySerial:
+
+```text
+GetOverlappedResult failed (PermissionError 13)
+Cannot configure port (PermissionError 13)
+WriteFile failed (PermissionError 13)
+```
+
+Сбой воспроизводился:
+
+- на `115200`, `57600` и `460800`;
+- с flasher stub и с `--no-stub`;
+- при чтении разных адресов;
+- при отключённом завершающем сбросе `--after no-reset`.
+
+Один и тот же адрес мог сначала завершиться ошибкой, а затем успешно считаться. Поэтому гипотеза об особом или недоступном диапазоне Flash была отклонена.
+
+После замены USB-кабеля успешно выполнено непрерывное чтение 65536 байт:
 
 ```powershell
-python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x10 test-2100-0010.bin
+python -m esptool --chip esp32 --port COM12 --baud 57600 `
+  --after no-reset `
+  read-flash 0x0 0x10000 slow-64k-57600.bin
 ```
 
-Успешный результат:
+Результат:
 
 ```text
-Read 16 bytes from 0x00002100 ...
-Hard resetting via RTS pin...
+Read 65536 bytes from 0x00000000 in 11.8 seconds (44.3 kbit/s)
+Staying in bootloader.
 ```
 
-Поэтому прежний вывод об адресно-зависимой или содержательно-зависимой ошибке отменён.
+## Вывод
+
+Наиболее сильное экспериментальное объяснение — нестабильный старый USB-кабель или контакт в USB-тракте.
 
 ```text
-ADDRESS_SPECIFIC_FAILURE_NOT_CONFIRMED
-INTERMITTENT_SERIAL_OR_RESET_FAILURE_CONFIRMED
-```
-
-## Что подтверждено
-
-- Flash имеет объём 4 MB.
-- `verify-flash` обращается к ранее «проблемным» областям и штатно возвращает `digest mismatch`.
-- Один и тот же адрес может как завершиться ошибкой pySerial, так и успешно считаться.
-- При ошибке плата иногда остаётся с погашенным дисплеем и слабым красным свечением RGB.
-- После успешной команды с `Hard resetting via RTS pin...` пользовательская программа запускается снова.
-
-## Наиболее осторожная интерпретация
-
-Сбой относится не к конкретному адресу Flash, а к нестабильности цепочки:
-
-```text
-Windows / pySerial / USB-UART / auto-reset RTS-DTR / serial bootloader
-```
-
-После ошибки ESP32, вероятно, остаётся в serial bootloader или промежуточном состоянии, поэтому дисплей погашен и пользовательская программа не работает. Это не доказательство зависания заводской программы.
-
-## Следующая проверка повторяемости
-
-Запустить одну и ту же короткую команду 10 раз и посчитать успешные и неуспешные попытки:
-
-```powershell
-1..10 | ForEach-Object {
-    $file = "repeat-2100-$_.bin"
-    Remove-Item $file -ErrorAction SilentlyContinue
-    python -m esptool --chip esp32 --port COM12 read-flash 0x2100 0x10 $file
-    [PSCustomObject]@{
-        Attempt = $_
-        ExitCode = $LASTEXITCODE
-        FileExists = Test-Path $file
-        Length = if (Test-Path $file) { (Get-Item $file).Length } else { 0 }
-    }
-}
-```
-
-Затем повторить то же для контрольного адреса `0x2110`.
-
-До получения статистики повторяемости не делать выводов о дефектном секторе, защищённом диапазоне или особом содержимом Flash.
-
-## Статус
-
-```text
+FLASH_ADDRESS_FAILURE_RETRACTED
 FLASH_SIZE_CONFIRMED_4MB
-REGION_0x2100_SUCCESSFULLY_READ
-PREVIOUS_ADDRESS_DEPENDENCE_RETRACTED
-INTERMITTENT_PYSERIAL_FAILURE
-AUTO_RESET_OR_USB_SERIAL_PATH_SUSPECTED
-FULL_BACKUP_NOT_YET_VALIDATED
-ROOT_CAUSE_NOT_YET_ESTABLISHED
+64KB_READ_SUCCESS_AFTER_CABLE_REPLACEMENT
+USB_CABLE_OR_CONNECTION_PATH_WAS_PRIMARY_SUSPECT
+FULL_BACKUP_VALIDATION_PENDING
 ```
+
+Один успешный тест 64 KB ещё не доказывает устойчивость полного чтения 4 MB. Перед любыми операциями записи нужны два полных совпадающих дампа.
+
+## Следующий шаг
+
+Поскольку команда использовала `--after no-reset`, сначала нажать `RESET/EN` или переподключить питание.
+
+Затем выполнить первый полный дамп на проверенной скорости `57600`:
+
+```powershell
+Remove-Item .\esp32-2432s028-full-1.bin -ErrorAction SilentlyContinue
+
+python -m esptool --chip esp32 --port COM12 --baud 57600 `
+  read-flash 0x0 0x400000 esp32-2432s028-full-1.bin
+```
+
+После завершения проверить размер:
+
+```powershell
+Get-Item .\esp32-2432s028-full-1.bin | Select-Object Name, Length, LastWriteTime
+```
+
+Ожидается:
+
+```text
+4194304
+```
+
+После первого успешного полного чтения выполнить второй независимый дамп и сравнить SHA-256.
+
+## Практический урок
+
+При повторяющихся `PermissionError(13)` и обрыве на одном и том же объёме данных сначала следует заменить USB-кабель на короткий заведомо исправный кабель передачи данных, а уже затем исследовать драйвер, скорость, адреса Flash и USB-UART.
 
 ## Официальные источники
 

@@ -6,6 +6,8 @@
 
 - [`esptool-windows-cli.md`](esptool-windows-cli.md) — установка, обновление и базовые команды esptool в Windows CLI.
 - [`esptool-windows-read-validation.md`](esptool-windows-read-validation.md) — проверенное двойное чтение flash и сравнение SHA-256.
+- [`esptool-windows-full-backup.md`](esptool-windows-full-backup.md) — создание двух полных резервных дампов Flash.
+- [`esp32-flash-partitions.md`](esp32-flash-partitions.md) — bootloader, таблица разделов, application, NVS, OTA и файловые разделы.
 
 ## Видео
 
@@ -15,7 +17,7 @@
 
 ## В разработке
 
-- полный резервный дамп flash;
+- расшифровка реальной таблицы разделов исследуемой платы;
 - Linux CLI;
 - Espressif Flash Download Tool;
 - проверка BIN;

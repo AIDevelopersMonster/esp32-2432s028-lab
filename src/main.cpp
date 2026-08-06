@@ -2,25 +2,25 @@
 #include <TFT_eSPI.h>
 
 #include <b2/SpiCoordinator.h>
-#include <b4/RecoveryApp.h>
+#include <b5/ContainmentApp.h>
 
 namespace {
 TFT_eSPI display;
 cyd::b2::SpiCoordinator spi;
-cyd::b4::RecoveryApp app(display, spi);
+cyd::b5::ContainmentApp app(display, spi);
 }
 
 void setup() {
   Serial.begin(115200);
   delay(300);
   app.begin();
-  Serial.println("ESP32-2432S028R B4");
+  Serial.println("ESP32-2432S028R B5");
 }
 
 void loop() {
   const uint32_t now = millis();
   if (!app.due(now)) return;
-  const auto& record = app.run(now);
-  app.render(record);
-  app.printSerial(record);
+  const auto& snapshot = app.run(now);
+  app.render(snapshot);
+  app.printSerial(snapshot);
 }

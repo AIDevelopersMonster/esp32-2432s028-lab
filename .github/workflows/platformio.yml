@@ -21,6 +21,9 @@ jobs:
       - name: Validate electrical truth profile
         run: python tools/validate_board_profile.py
 
+      - name: Validate B2 HIL parser fixture
+        run: python tools/parse_b2_hil.py tests/fixtures/b2-hil-pass.log --require-sd
+
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 

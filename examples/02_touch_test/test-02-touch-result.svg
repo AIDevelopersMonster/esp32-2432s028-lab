@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#f3f4f6"/>
+  <rect x="24" y="24" width="912" height="492" rx="18" fill="none" stroke="#9ca3af" stroke-width="4" stroke-dasharray="14 10"/>
+  <text x="480" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="#374151">TEST 02 — XPT2046 TOUCH</text>
+  <text x

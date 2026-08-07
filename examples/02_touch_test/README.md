@@ -12,11 +12,19 @@
 
 ## Требования
 
+Перед запуском этого теста должны быть выполнены предыдущие шаги:
+
 - успешно работает пример [01_display_test](../01_display_test/README.md);
-- установлены `TFT_eSPI` и `XPT2046_Touchscreen`;
-- установлена библиотека `CYD_Board`;
-- применена конфигурация TFT_eSPI;
+- установлены [`TFT_eSPI`](../../docs/tft-espi-installation.md) и [`XPT2046_Touchscreen`](../../docs/xpt2046-touchscreen-installation.md);
+- установлена наша библиотека [`CYD_Board`](../../libraries/CYD_Board/README.md);
+- применена конфигурация [`config/tft_espi/User_Setup.h`](../../config/tft_espi/User_Setup.h) по [инструкции TFT_eSPI](../../docs/tft-espi-installation.md);
 - Serial Monitor настроен на **115200 бод**.
+
+Для `XPT2046_Touchscreen` в проекте теперь есть отдельная пошаговая инструкция:
+
+**[Установка XPT2046_Touchscreen для ESP32-2432S028](../../docs/xpt2046-touchscreen-installation.md)**
+
+В ней показано, как установить оригинальную библиотеку **XPT2046_Touchscreen by Paul Stoffregen** через Arduino Library Manager, проверить файл `XPT2046_Touchscreen.h`, понять используемый отдельный SPI и проверить компиляцию `02_touch_test.ino`.
 
 ## Используемые выводы тачскрина
 
@@ -32,10 +40,13 @@
 
 ## Запуск
 
-1. Откройте `02_touch_test.ino`.
-2. Загрузите скетч.
-3. Откройте Serial Monitor на 115200 бод.
-4. Нажимайте стилусом или пальцем в разных местах экрана.
+1. Убедитесь, что `01_display_test` уже работает.
+2. Установите `XPT2046_Touchscreen` по [инструкции](../../docs/xpt2046-touchscreen-installation.md).
+3. Откройте `02_touch_test.ino`.
+4. Нажмите **Verify**.
+5. Загрузите скетч.
+6. Откройте Serial Monitor на 115200 бод.
+7. Нажимайте стилусом или пальцем в разных местах экрана.
 
 Для резистивного тачскрина стилус обычно даёт более устойчивый контакт, чем лёгкое касание пальцем.
 
@@ -84,6 +95,12 @@ x=1234 y=2870 z=560
 Поэтому эти числа нельзя прямо использовать как экранные координаты интерфейса.
 
 ## Типичные проблемы
+
+### `XPT2046_Touchscreen.h: No such file or directory`
+
+Библиотека не установлена или Arduino IDE её не видит. Выполните:
+
+- [Установка XPT2046_Touchscreen](../../docs/xpt2046-touchscreen-installation.md)
 
 ### Всегда одни и те же X/Y
 

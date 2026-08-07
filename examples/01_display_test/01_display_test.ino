@@ -1,145 +1,254 @@
 /*
  * ESP32-2432S028R / Cheap Yellow Display (CYD)
  * ------------------------------------------------------------
- * Example: 01_display_test
- * Purpose: basic functional test of the built-in ILI9341 TFT.
+ * Example: 03_sd_rw_lab
+ * Purpose: educational microSD filesystem read/write laboratory.
  *
  * Project:
  *   https://github.com/AIDevelopersMonster/esp32-2432s028-lab
  *
- * Status:
- *   VERIFIED WORKING on 2026-08-07
+ * This companion example follows 03_sd_test.
+ * 03_sd_test is a read-only hardware/mount check.
+ * This sketch demonstrates how an application can:
+ *   - create directories and subdirectories;
+ *   - create files;
+ *   - write text;
+ *   - close and reopen files;
+ *   - read data back and compare it;
+ *   - append additional data;
+ *   - list the resulting directory tree.
  *
- * Verified hardware profile:
- *   - Board: ESP32-2432S028R / CYD
- *   - MCU: ESP32-D0WD-V3 rev. 3.0
- *   - TFT controller: ILI9341
- *   - Display size: 240 x 320 pixels
- *   - Test orientation: landscape, 320 x 240
- *   - Flash: 4 MB
+ * IMPORTANT SAFETY RULE:
+ *   The sketch works only inside /cyd_lab and does not format the card.
+ *   Existing files elsewhere on the microSD are not intentionally modified.
+ *   Files with the same names inside /cyd_lab are overwritten by this test.
  *
- * Required libraries:
- *   - TFT_eSPI by Bodmer
- *   - CYD_Board from this repository
+ * microSD pin map from CYD_Board:
+ *   MISO : GPIO 19
+ *   MOSI : GPIO 23
+ *   SCLK : GPIO 18
+ *   CS   : GPIO 5
  *
- * Important:
- *   TFT_eSPI must use the project configuration:
- *     config/tft_espi/User_Setup.h
- *
- * Verified Arduino IDE settings:
- *   - Board: ESP32 Dev Module
- *   - CPU Frequency: 240 MHz
- *   - Flash Frequency: 40 MHz
- *   - Flash Mode: DIO
- *   - Flash Size: 4 MB
- *   - Upload Speed: 115200
- *
- * What this sketch checks:
- *   - CYD_Board basic hardware initialization
- *   - TFT backlight control
- *   - ILI9341 initialization through TFT_eSPI
- *   - landscape orientation
- *   - text drawing
- *   - rectangle drawing
- *   - basic RGB/cyan/magenta color output
- *
- * Expected result:
- *   The display shows the board name, the text
- *   "ILI9341 display test", five colored fields,
- *   a frame and "Display initialized successfully".
- *
- * Documentation:
- *   examples/01_display_test/README.md
- *   docs/tft-espi-installation.md
- *   libraries/CYD_Board/README.md
+ * Serial Monitor:
+ *   115200 baud
  */
 
 #include <SPI.h>
-#include <XPT2046_Touchscreen.h>
+#include <SD.h>
+#include <CYD_Board.h>
 
+// The microSD slot uses its own SPI pin group on this CYD revision.
+SPIClass sdSpi(VSPI);
 
-#include <TFT_eSPI.h>   // TFT driver and graphics library.
-#include <CYD_Board.h>  // Project-specific CYD pin map and helper functions.
+static const char *LAB_ROOT = "/cyd_lab";
 
-// TFT_eSPI object. Pin assignments and ILI9341 driver selection are taken
-// from the project's config/tft_espi/User_Setup.h file.
-TFT_eSPI tft;
-SPIClass touchSpi(VSPI);
-XPT2046_Touchscreen touch(cyd::TOUCH_CS_PIN, cyd::TOUCH_IRQ_PIN);
-
-void setup() {
-  // Serial is not required for the visible display test, but keeping it
-  // enabled at 115200 baud is useful for later diagnostics and extensions.
-  Serial.begin(115200);
-
-  // Initialize the basic CYD hardware defined by our CYD_Board library.
-  // Among other things, this enables the TFT backlight on GPIO 21.
-  cyd::beginBasicHardware();
-
-  // Initialize the ILI9341 through TFT_eSPI.
-  tft.init();
-
-  // Rotation 1 gives the verified landscape orientation: 320 x 240.
-  tft.setRotation(1);
-
-  // Clear the complete screen before drawing the test pattern.
-  tft.fillScreen(TFT_BLACK);
-  // Board name in yellow.
-
-  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-  tft.drawString("XPT2046 raw touch test", 12, 12, 2);
-  tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  tft.drawString("Touch the screen and watch X/Y/Z", 12, 36, 2);
-
-  // Test description in white.
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString("ILI9341 display test", 18, 62, 2);
-
-  // Draw five basic color fields. This is a practical visual check that the
-  // display accepts pixel data and that the main color channels are visible.
-  // A photograph is not a colorimetric reference: camera exposure and white
-  // balance can noticeably change how these colors look in a photo.
-  const uint16_t colors[] = {
-    TFT_RED,
-    TFT_GREEN,
-    TFT_BLUE,
-    TFT_CYAN,
-    TFT_MAGENTA
-  };
-
-  for (int i = 0; i < 5; ++i) {
-    tft.fillRect(18 + i * 58, 100, 48, 48, colors[i]);
+// Create a directory if it does not already exist.
+bool ensureDirectory(const char *path) {
+  if (SD.exists(path)) {
+    Serial.printf("DIR EXISTS : %s\n", path);
+    return true;
   }
 
-  // Draw a frame around the useful test area.
-  tft.drawRect(12, 12, 296, 216, TFT_DARKGREY);
+  if (SD.mkdir(path)) {
+    Serial.printf("DIR CREATED: %s\n", path);
+    return true;
+  }
 
-  // Final visible indication that setup() reached the end successfully.
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.drawString("Display initialized successfully", 18, 180, 2);
-
-  touchSpi.begin(cyd::TOUCH_CLK_PIN,
-                 cyd::TOUCH_MISO_PIN,
-                 cyd::TOUCH_MOSI_PIN,
-                 cyd::TOUCH_CS_PIN);
-  touch.begin(touchSpi);
-  touch.setRotation(1);
+  Serial.printf("DIR FAILED : %s\n", path);
+  return false;
 }
 
-void loop() {
-  if (!touch.touched()) {
-    delay(20);
+// Write a complete text file, close it, reopen it and verify its contents.
+bool writeAndVerify(const char *path, const char *expected) {
+  Serial.printf("\nWRITE      : %s\n", path);
+
+  File file = SD.open(path, FILE_WRITE);
+  if (!file) {
+    Serial.println("  FAIL: cannot open for writing");
+    return false;
+  }
+
+  const size_t expectedLength = strlen(expected);
+  const size_t written = file.print(expected);
+  file.close();
+
+  if (written != expectedLength) {
+    Serial.printf("  FAIL: wrote %u of %u bytes\n",
+                  static_cast<unsigned>(written),
+                  static_cast<unsigned>(expectedLength));
+    return false;
+  }
+
+  File verifyFile = SD.open(path, FILE_READ);
+  if (!verifyFile) {
+    Serial.println("  FAIL: cannot reopen for reading");
+    return false;
+  }
+
+  String actual = verifyFile.readString();
+  verifyFile.close();
+
+  if (actual != expected) {
+    Serial.println("  FAIL: readback differs from written data");
+    Serial.printf("  READ: %s\n", actual.c_str());
+    return false;
+  }
+
+  Serial.printf("  PASS: %u bytes written and verified\n",
+                static_cast<unsigned>(expectedLength));
+  return true;
+}
+
+// Append text to an existing file and then verify the full final contents.
+bool appendAndVerify(const char *path,
+                     const char *appendText,
+                     const char *expectedFinal) {
+  Serial.printf("\nAPPEND     : %s\n", path);
+
+  File file = SD.open(path, FILE_APPEND);
+  if (!file) {
+    Serial.println("  FAIL: cannot open for append");
+    return false;
+  }
+
+  const size_t expectedAppendLength = strlen(appendText);
+  const size_t written = file.print(appendText);
+  file.close();
+
+  if (written != expectedAppendLength) {
+    Serial.println("  FAIL: append length mismatch");
+    return false;
+  }
+
+  File verifyFile = SD.open(path, FILE_READ);
+  if (!verifyFile) {
+    Serial.println("  FAIL: cannot reopen after append");
+    return false;
+  }
+
+  String actual = verifyFile.readString();
+  verifyFile.close();
+
+  if (actual != expectedFinal) {
+    Serial.println("  FAIL: final contents do not match");
+    Serial.printf("  READ: %s\n", actual.c_str());
+    return false;
+  }
+
+  Serial.println("  PASS: append verified");
+  return true;
+}
+
+// Recursively print the directory tree so the user can see what was created.
+void listDirectory(fs::FS &fs, const char *path, uint8_t levels) {
+  File root = fs.open(path);
+  if (!root || !root.isDirectory()) {
+    Serial.printf("Cannot open directory: %s\n", path);
     return;
   }
 
-  const TS_Point point = touch.getPoint();
-  Serial.printf("x=%d y=%d z=%d\n", point.x, point.y, point.z);
-
-  tft.fillRect(12, 75, 296, 40, TFT_BLACK);
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.setCursor(12, 78, 4);
-  tft.printf("X:%4d Y:%4d Z:%4d", point.x, point.y, point.z);
-
-  delay(60);
+  File file = root.openNextFile();
+  while (file) {
+    if (file.isDirectory()) {
+      Serial.printf("DIR : %s\n", file.path());
+      if (levels > 0) {
+        listDirectory(fs, file.path(), levels - 1);
+      }
+    } else {
+      Serial.printf("FILE: %-32s SIZE: %u\n",
+                    file.path(),
+                    static_cast<unsigned>(file.size()));
+    }
+    file = root.openNextFile();
+  }
 }
 
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  Serial.println();
+  Serial.println("ESP32-2432S028R microSD read/write laboratory");
+  Serial.println("Working directory: /cyd_lab");
+  Serial.println("No formatting is performed.");
+  Serial.println();
+
+  // Start the microSD SPI bus on the board-specific pins from CYD_Board.
+  sdSpi.begin(cyd::SD_SCLK_PIN,
+              cyd::SD_MISO_PIN,
+              cyd::SD_MOSI_PIN,
+              cyd::SD_CS_PIN);
+
+  if (!SD.begin(cyd::SD_CS_PIN, sdSpi)) {
+    Serial.println("microSD mount failed");
+    return;
+  }
+
+  if (SD.cardType() == CARD_NONE) {
+    Serial.println("No microSD card detected");
+    return;
+  }
+
+  Serial.printf("Card size: %llu MB\n",
+                SD.cardSize() / (1024ULL * 1024ULL));
+
+  // Create a small hierarchy to demonstrate directories and subdirectories.
+  bool ok = true;
+  ok &= ensureDirectory(LAB_ROOT);
+  ok &= ensureDirectory("/cyd_lab/config");
+  ok &= ensureDirectory("/cyd_lab/logs");
+  ok &= ensureDirectory("/cyd_lab/archive");
+  ok &= ensureDirectory("/cyd_lab/archive/2026");
+
+  if (!ok) {
+    Serial.println("\nDirectory creation failed. Test stopped.");
+    return;
+  }
+
+  // Create and verify several files at different hierarchy levels.
+  ok &= writeAndVerify(
+      "/cyd_lab/readme.txt",
+      "CYD microSD laboratory\n");
+
+  ok &= writeAndVerify(
+      "/cyd_lab/config/device.txt",
+      "board=ESP32-2432S028R\nmode=sd-rw-lab\n");
+
+  ok &= writeAndVerify(
+      "/cyd_lab/logs/session.txt",
+      "session-start\n");
+
+  ok &= writeAndVerify(
+      "/cyd_lab/archive/2026/result.txt",
+      "nested-write-pass\n");
+
+  // Demonstrate append mode and verify the complete resulting file.
+  ok &= appendAndVerify(
+      "/cyd_lab/logs/session.txt",
+      "write-read-verified\n",
+      "session-start\nwrite-read-verified\n");
+
+  Serial.println();
+  Serial.println("--- /cyd_lab directory tree ---");
+  listDirectory(SD, LAB_ROOT, 4);
+
+  Serial.println();
+  if (ok) {
+    Serial.println("SD_RW_LAB_PASS");
+    Serial.println("DIRECTORY_CREATE_CONFIRMED");
+    Serial.println("NESTED_DIRECTORY_CONFIRMED");
+    Serial.println("FILE_WRITE_CONFIRMED");
+    Serial.println("FILE_READBACK_CONFIRMED");
+    Serial.println("FILE_APPEND_CONFIRMED");
+  } else {
+    Serial.println("SD_RW_LAB_FAIL");
+  }
+
+  Serial.println();
+  Serial.println("Files are intentionally left on the card in /cyd_lab");
+  Serial.println("so they can also be inspected later on a computer.");
+}
+
+void loop() {
+  // One-shot laboratory test. Press RESET/EN to run it again.
+}

@@ -7,16 +7,45 @@
  * Project:
  *   https://github.com/AIDevelopersMonster/esp32-2432s028-lab
  *
- * This companion example follows 03_sd_test.
- * 03_sd_test is a read-only hardware/mount check.
- * This sketch demonstrates how an application can:
- *   - create directories and subdirectories;
- *   - create files;
- *   - write text;
- *   - close and reopen files;
- *   - read data back and compare it;
- *   - append additional data;
- *   - list the resulting directory tree.
+ * Documentation:
+ *   examples/03_sd_rw_lab/README.md
+ *
+ * Status:
+ *   VERIFIED WORKING on 2026-08-07
+ *
+ * Verified on real hardware:
+ *   - microSD mount succeeds;
+ *   - reported card size: 30250 MB;
+ *   - /cyd_lab and nested directories are created;
+ *   - files are created at several hierarchy levels;
+ *   - written byte counts match expectations;
+ *   - files are closed and reopened;
+ *   - readback matches the exact written text;
+ *   - append mode works and is verified by full readback;
+ *   - the resulting directory tree is enumerated successfully.
+ *
+ * Verified resulting tree:
+ *   /cyd_lab
+ *   |-- readme.txt                    23 bytes
+ *   |-- config/
+ *   |   `-- device.txt                37 bytes
+ *   |-- logs/
+ *   |   `-- session.txt               34 bytes after append
+ *   `-- archive/
+ *       `-- 2026/
+ *           `-- result.txt            18 bytes
+ *
+ * Verified final status markers:
+ *   SD_RW_LAB_PASS
+ *   DIRECTORY_CREATE_CONFIRMED
+ *   NESTED_DIRECTORY_CONFIRMED
+ *   FILE_WRITE_CONFIRMED
+ *   FILE_READBACK_CONFIRMED
+ *   FILE_APPEND_CONFIRMED
+ *
+ * Relationship to 03_sd_test:
+ *   - 03_sd_test is the safe read-only hardware/mount/listing test.
+ *   - 03_sd_rw_lab is the companion write/readback laboratory.
  *
  * IMPORTANT SAFETY RULE:
  *   The sketch works only inside /cyd_lab and does not format the card.
@@ -29,20 +58,31 @@
  *   SCLK : GPIO 18
  *   CS   : GPIO 5
  *
+ * Required libraries:
+ *   - SPI from the ESP32 Arduino core
+ *   - SD from the ESP32 Arduino core
+ *   - CYD_Board from this repository
+ *
  * Serial Monitor:
  *   115200 baud
  */
 
-#include <SPI.h>
-#include <SD.h>
-#include <CYD_Board.h>
+#include <SPI.h>       // ESP32 SPI bus support.
+#include <SD.h>        // ESP32 SD filesystem library.
+#include <CYD_Board.h> // Project-specific CYD pin definitions.
 
-// The microSD slot uses its own SPI pin group on this CYD revision.
+// The microSD connector uses its own SPI pin group on this CYD revision.
+// VSPI is used as the hardware SPI peripheral and remapped below to the
+// board-specific pins from CYD_Board.
 SPIClass sdSpi(VSPI);
 
+// Keep every destructive test operation inside one dedicated directory.
+// This makes the laboratory repeatable and avoids touching unrelated files.
 static const char *LAB_ROOT = "/cyd_lab";
 
 // Create a directory if it does not already exist.
+// Returning true for an existing directory makes the test repeatable after
+// RESET without requiring the user to remove /cyd_lab manually.
 bool ensureDirectory(const char *path) {
   if (SD.exists(path)) {
     Serial.printf("DIR EXISTS : %s\n", path);
@@ -58,10 +98,14 @@ bool ensureDirectory(const char *path) {
   return false;
 }
 
-// Write a complete text file, close it, reopen it and verify its contents.
+// Write the complete expected text to a file, close it, reopen it for reading
+// and compare the full readback with the original string.
+// This checks much more than successful File.open(): it verifies that bytes
+// actually reach the filesystem and can be read back unchanged.
 bool writeAndVerify(const char *path, const char *expected) {
   Serial.printf("\nWRITE      : %s\n", path);
 
+  // FILE_WRITE creates the file when needed and writes the new test content.
   File file = SD.open(path, FILE_WRITE);
   if (!file) {
     Serial.println("  FAIL: cannot open for writing");
@@ -70,6 +114,9 @@ bool writeAndVerify(const char *path, const char *expected) {
 
   const size_t expectedLength = strlen(expected);
   const size_t written = file.print(expected);
+
+  // Closing before verification is deliberate: it flushes/finishes the write
+  // and forces the next step to reopen the file through the filesystem.
   file.close();
 
   if (written != expectedLength) {
@@ -79,6 +126,7 @@ bool writeAndVerify(const char *path, const char *expected) {
     return false;
   }
 
+  // Reopen as a separate read operation.
   File verifyFile = SD.open(path, FILE_READ);
   if (!verifyFile) {
     Serial.println("  FAIL: cannot reopen for reading");
@@ -88,6 +136,7 @@ bool writeAndVerify(const char *path, const char *expected) {
   String actual = verifyFile.readString();
   verifyFile.close();
 
+  // Exact comparison verifies both file length and file contents.
   if (actual != expected) {
     Serial.println("  FAIL: readback differs from written data");
     Serial.printf("  READ: %s\n", actual.c_str());
@@ -99,7 +148,9 @@ bool writeAndVerify(const char *path, const char *expected) {
   return true;
 }
 
-// Append text to an existing file and then verify the full final contents.
+// Append new text to an existing file, close it, reopen it and verify the
+// complete final contents. This demonstrates that append is different from
+// replacing the original file contents.
 bool appendAndVerify(const char *path,
                      const char *appendText,
                      const char *expectedFinal) {
@@ -139,7 +190,8 @@ bool appendAndVerify(const char *path,
   return true;
 }
 
-// Recursively print the directory tree so the user can see what was created.
+// Recursively print the resulting directory tree so the user can confirm
+// where files were created and what sizes the filesystem reports.
 void listDirectory(fs::FS &fs, const char *path, uint8_t levels) {
   File root = fs.open(path);
   if (!root || !root.isDirectory()) {
@@ -151,6 +203,9 @@ void listDirectory(fs::FS &fs, const char *path, uint8_t levels) {
   while (file) {
     if (file.isDirectory()) {
       Serial.printf("DIR : %s\n", file.path());
+
+      // Recursion depth is explicitly bounded even though this laboratory
+      // creates only a small known hierarchy.
       if (levels > 0) {
         listDirectory(fs, file.path(), levels - 1);
       }
@@ -159,6 +214,7 @@ void listDirectory(fs::FS &fs, const char *path, uint8_t levels) {
                     file.path(),
                     static_cast<unsigned>(file.size()));
     }
+
     file = root.openNextFile();
   }
 }
@@ -173,17 +229,20 @@ void setup() {
   Serial.println("No formatting is performed.");
   Serial.println();
 
-  // Start the microSD SPI bus on the board-specific pins from CYD_Board.
+  // Start the microSD SPI bus on the board-specific pins:
+  // SCLK=18, MISO=19, MOSI=23, CS=5.
   sdSpi.begin(cyd::SD_SCLK_PIN,
               cyd::SD_MISO_PIN,
               cyd::SD_MOSI_PIN,
               cyd::SD_CS_PIN);
 
+  // Mount the card through the dedicated SPI object.
   if (!SD.begin(cyd::SD_CS_PIN, sdSpi)) {
     Serial.println("microSD mount failed");
     return;
   }
 
+  // Make sure a physical/usable card was detected after mounting.
   if (SD.cardType() == CARD_NONE) {
     Serial.println("No microSD card detected");
     return;
@@ -192,8 +251,11 @@ void setup() {
   Serial.printf("Card size: %llu MB\n",
                 SD.cardSize() / (1024ULL * 1024ULL));
 
-  // Create a small hierarchy to demonstrate directories and subdirectories.
+  // Accumulate the result of every independent filesystem operation.
+  // Using &= lets the later checks still run and produce useful diagnostics.
   bool ok = true;
+
+  // Create a small hierarchy to demonstrate directories and subdirectories.
   ok &= ensureDirectory(LAB_ROOT);
   ok &= ensureDirectory("/cyd_lab/config");
   ok &= ensureDirectory("/cyd_lab/logs");
@@ -205,35 +267,42 @@ void setup() {
     return;
   }
 
-  // Create and verify several files at different hierarchy levels.
+  // Root-level file.
   ok &= writeAndVerify(
       "/cyd_lab/readme.txt",
       "CYD microSD laboratory\n");
 
+  // File inside a first-level configuration directory.
   ok &= writeAndVerify(
       "/cyd_lab/config/device.txt",
       "board=ESP32-2432S028R\nmode=sd-rw-lab\n");
 
+  // File used later for the append demonstration.
   ok &= writeAndVerify(
       "/cyd_lab/logs/session.txt",
       "session-start\n");
 
+  // File placed two directory levels below /cyd_lab.
   ok &= writeAndVerify(
       "/cyd_lab/archive/2026/result.txt",
       "nested-write-pass\n");
 
-  // Demonstrate append mode and verify the complete resulting file.
+  // Append another line to session.txt and verify that both the original and
+  // appended data are present in the correct order.
   ok &= appendAndVerify(
       "/cyd_lab/logs/session.txt",
       "write-read-verified\n",
       "session-start\nwrite-read-verified\n");
 
+  // Print the final hierarchy and sizes exactly as the filesystem reports it.
   Serial.println();
   Serial.println("--- /cyd_lab directory tree ---");
   listDirectory(SD, LAB_ROOT, 4);
 
   Serial.println();
   if (ok) {
+    // Machine-readable PASS markers make the laboratory result easy to copy
+    // into documentation, logs or later automated checks.
     Serial.println("SD_RW_LAB_PASS");
     Serial.println("DIRECTORY_CREATE_CONFIRMED");
     Serial.println("NESTED_DIRECTORY_CONFIRMED");
@@ -244,6 +313,8 @@ void setup() {
     Serial.println("SD_RW_LAB_FAIL");
   }
 
+  // Leave all generated files on the card deliberately. The user can remove
+  // the microSD later and inspect /cyd_lab from a desktop computer.
   Serial.println();
   Serial.println("Files are intentionally left on the card in /cyd_lab");
   Serial.println("so they can also be inspected later on a computer.");

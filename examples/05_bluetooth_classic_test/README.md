@@ -2,9 +2,38 @@
 
 ## Статус
 
-**ГОТОВО К ПРОВЕРКЕ НА РЕАЛЬНОЙ ПЛАТЕ**
+**ПРОВЕРЕНО: РАБОТАЕТ**
 
-Этот пример пока не помечен как `VERIFIED`, потому что фактический запуск на ESP32-2432S028R ещё не выполнен.
+Дата проверки: **08.08.2026**
+
+Фактический запуск на ESP32-2432S028R подтверждён пользователем.
+
+По фотоотчёту подтверждаются:
+
+- устройство `CYD-BT-CLASSIC` обнаружено и подключено в Bluetooth SPP terminal;
+- ESP32 регулярно передаёт heartbeat-сообщение;
+- период отправки примерно 5 секунд;
+- сообщение `[CYD] Bluetooth Classic SPP alive` стабильно приходит на телефон;
+- отправленный с телефона символ `t` был принят ESP32 и возвращён обратно как echo;
+- двусторонний SPP-канал фактически работает.
+
+Итоговый статус лабораторного теста:
+
+```
+TEST_05_BLUETOOTH_CLASSIC_PASS
+BT_CLASSIC_START_CONFIRMED
+BT_CLASSIC_DEVICE_DISCOVERED
+BT_CLASSIC_SPP_CONNECTION_CONFIRMED
+BT_CLASSIC_TX_CONFIRMED
+BT_CLASSIC_RX_CONFIRMED
+BT_CLASSIC_ECHO_CONFIRMED
+```
+
+## Фото результата
+
+![Результат теста 05 — Bluetooth Classic SPP](test-05-bluetooth-classic-result.svg)
+
+Файл `test-05-bluetooth-classic-result.svg` — минимальная заглушка. Его можно заменить локально реальной фотографией результата, сохранив то же имя файла; ссылка в README останется рабочей.
 
 Файл программы: [`05_bluetooth_classic_test.ino`](05_bluetooth_classic_test.ino)
 
@@ -79,7 +108,7 @@ CYD_BT_CLASSIC_READY
 [CYD] Bluetooth Classic SPP alive
 ```
 
-Это подтверждает передачу данных от ESP32 к Bluetooth-клиенту.
+На реальной плате это подтверждено фотоотчётом.
 
 ## Проверка направления телефон/ПК -> ESP32
 
@@ -94,7 +123,13 @@ hello from bluetooth
 - появиться в Arduino Serial Monitor;
 - вернуться в Bluetooth-терминал как echo.
 
-Таким образом одновременно проверяются приём и обратная передача.
+В фактическом тесте был отправлен символ:
+
+```
+t
+```
+
+и терминал показал его возврат, что подтверждает RX + echo.
 
 ## Проверка USB Serial -> Bluetooth
 
@@ -108,7 +143,7 @@ hello from usb serial
 
 ## Критерий PASS
 
-После реального теста пример можно считать полностью подтверждённым, если одновременно выполнены условия:
+Пример считается полностью подтверждённым, если одновременно выполнены условия:
 
 ```
 BT_CLASSIC_START_CONFIRMED
@@ -118,6 +153,8 @@ BT_CLASSIC_TX_CONFIRMED
 BT_CLASSIC_RX_CONFIRMED
 BT_CLASSIC_ECHO_CONFIRMED
 ```
+
+Для проверенной ESP32-2432S028R эти условия выполнены.
 
 ## Важное ограничение
 

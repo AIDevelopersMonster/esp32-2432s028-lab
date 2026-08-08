@@ -2,7 +2,7 @@
 
 Практическая лаборатория для платы **ESP32-2432S028R**, известной как **Cheap Yellow Display (CYD)**: ESP32-WROOM-32, цветной TFT-дисплей 2,8 дюйма, резистивный тачскрин, microSD, RGB-светодиод, фоторезистор, аудиовыход, Wi-Fi и Bluetooth на одной плате.
 
-Проект построен как последовательность проверяемых примеров: сначала базовое оборудование, затем дисплей, тачскрин, карта памяти, Wi-Fi и Bluetooth. Корневой пример собирается через PlatformIO; скетчи из `examples/` можно запускать в Arduino IDE.
+Проект построен как последовательность проверяемых примеров: сначала базовое оборудование, затем дисплей, тачскрин, карта памяти, Wi-Fi, Bluetooth, аудио и разъёмы расширения. Корневой пример собирается через PlatformIO; скетчи из `examples/` можно запускать в Arduino IDE.
 
 > Проект рассчитан прежде всего на распространённую ревизию **ESP32-2432S028R с ILI9341 и XPT2046**. Перед подключением внешних устройств сравните маркировку и разводку своей платы: у продавцов встречаются близкие ревизии с отличиями.
 
@@ -42,8 +42,10 @@ python tools/run_hw01_identity.py
 - безопасный read-only тест microSD;
 - отдельная лаборатория записи, readback, append и вложенных каталогов на microSD;
 - простой сетевой экран часов через Wi-Fi и NTP;
-- тест Bluetooth Classic SPP с двусторонним serial-обменом;
-- BLE GATT-тест с advertising, READ, WRITE и NOTIFY;
+- проверенный Bluetooth Classic SPP с двусторонним serial-обменом;
+- проверенный BLE GATT-тест с advertising, READ/WRITE/NOTIFY;
+- подготовленный тест аудиотракта GPIO26 / DAC2;
+- подготовленный loopback-тест GPIO22/GPIO27 и входа GPIO35 на разъёмах расширения;
 - общая библиотека `CYD_Board` с именованными выводами платы;
 - конфигурация TFT_eSPI для Arduino IDE и PlatformIO;
 - автоматическая проверка сборки через GitHub Actions.
@@ -58,7 +60,7 @@ python tools/run_hw01_identity.py
 | Тачскрин | резистивный, XPT2046, SPI |
 | Память программы | обычно 4 МБ Flash |
 | Карта памяти | microSD, SPI |
-| Дополнительно | RGB LED, LDR, BOOT/RESET, аудиоусилитель, разъёмы расширения |
+| Дополнительно | RGB LED, LDR, BOOT/RESET, аудиовыход/усилитель, разъёмы расширения |
 | Питание/прошивка | 5 В через USB, преобразователь USB–UART CH340C на распространённой ревизии |
 
 ## Быстрый старт: PlatformIO
@@ -107,10 +109,12 @@ pio device monitor -b 115200
 | `04_wifi_clock` | Wi-Fi и часы NTP | CYD_Board, TFT_eSPI, стандартные WiFi/time |
 | `05_bluetooth_classic_test` | Bluetooth Classic SPP, передача в обе стороны | стандартный BluetoothSerial |
 | `06_ble_test` | BLE advertising и GATT READ/WRITE/NOTIFY | стандартный BLE API ESP32 |
+| `07_audio_test` | GPIO26 / DAC2 и штатный аудиотракт | CYD_Board |
+| `08_expansion_io_test` | loopback GPIO22↔GPIO27 и вход/ADC GPIO35 | нет |
 
 Для `04_wifi_clock` скопируйте `secrets.example.h` в `secrets.h` и укажите данные своей сети. Файл `secrets.h` не должен публиковаться в Git.
 
-Bluetooth-примеры не используют внешние GPIO и предназначены для проверки встроенного радиотракта ESP32. На момент добавления они имеют статус `READY FOR HARDWARE TEST`; статус `VERIFIED` ставится только после реального запуска.
+Bluetooth Classic и BLE уже проверены на реальной плате. Примеры `07_audio_test` и `08_expansion_io_test` подготовлены, но должны оставаться в статусе `READY FOR HARDWARE TEST` до фактического прогона.
 
 ## Распиновка
 
@@ -124,7 +128,8 @@ Bluetooth-примеры не используют внешние GPIO и пре
 - RGB LED: R 4, G 16, B 17, логика инверсная;
 - LDR: GPIO 34;
 - аудио: GPIO 26;
-- BOOT: GPIO 0.
+- BOOT: GPIO 0;
+- expansion lab: GPIO22, GPIO27, GPIO35 input-only.
 
 ## Важные ограничения
 
@@ -136,6 +141,7 @@ Bluetooth-примеры не используют внешние GPIO и пре
 - Тачскрин и microSD разведены на разные группы выводов. При объединении их в одном приложении заранее продумайте распределение аппаратных SPI-контроллеров либо программный SPI.
 - Цвета, поворот и калибровка тачскрина могут отличаться между партиями.
 - Отдельные Bluetooth-тесты не доказывают устойчивую совместную работу Wi-Fi + Bluetooth Classic + BLE под высокой нагрузкой.
+- Расположение контактов P3/CN1 может отличаться между ревизиями; перед loopback-тестом идентифицируйте реальные GPIO конкретной платы.
 
 ## Структура репозитория
 
@@ -159,12 +165,14 @@ esp32-2432s028-lab/
 - совместный radio coexistence-тест Wi-Fi/Bluetooth после отдельных PASS;
 - веб-панель управления;
 - интеграция с MQTT и Home Assistant;
-- примеры датчиков через свободные GPIO/I²C;
+- дополнительные I2C-примеры с внешними датчиками через свободные GPIO;
 - корпуса и файлы 3D-печати.
 
 ## Источники и полезные материалы
 
+- Arduino ESP32 DAC: <https://docs.espressif.com/projects/arduino-esp32/en/latest/api/dac.html>
 - Arduino ESP32 Bluetooth Classic: <https://docs.espressif.com/projects/arduino-esp32/en/latest/api/bluetooth.html>
+- ESP-IDF GPIO: <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html>
 - ESP-IDF Bluetooth API: <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/index.html>
 - NuttX board documentation: <https://nuttx.apache.org/docs/latest/platforms/xtensa/esp32/boards/esp32-2432S028/index.html>
 - Random Nerd Tutorials pinout: <https://randomnerdtutorials.com/esp32-cheap-yellow-display-cyd-pinout-esp32-2432s028r/>

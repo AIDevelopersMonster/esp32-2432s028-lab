@@ -80,26 +80,19 @@ class ServerCallbacks : public BLEServerCallbacks {
 
 class CharacteristicCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *characteristic) override {
-    // getValue() returns the bytes written by the BLE client.
-    const std::string value = characteristic->getValue();
+    // Current Arduino-ESP32 BLE API returns an Arduino String here.
+    const String value = characteristic->getValue();
 
-    if (value.empty()) {
+    if (value.length() == 0) {
       Serial.println("BLE_WRITE_EMPTY");
       return;
     }
 
     Serial.print("BLE RX: ");
-    for (char c : value) {
-      Serial.write(static_cast<uint8_t>(c));
-    }
-    Serial.println();
+    Serial.println(value);
 
     // Return a simple acknowledgement through the same characteristic.
-    String ack = "ACK:";
-    for (char c : value) {
-      ack += c;
-    }
-
+    String ack = "ACK:" + value;
     characteristic->setValue(ack.c_str());
     characteristic->notify();
     Serial.println("BLE_WRITE_ACK_NOTIFIED");

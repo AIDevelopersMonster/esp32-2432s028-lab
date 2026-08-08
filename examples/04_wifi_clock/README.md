@@ -1,5 +1,33 @@
 # 04 — Wi-Fi часы с NTP
 
+## Статус
+
+**ПРОВЕРЕНО: РАБОТАЕТ**
+
+Дата проверки: **08.08.2026**
+
+Фактический запуск на ESP32-2432S028R подтверждён пользователем как полностью рабочий.
+
+По представленному фото подтверждаются:
+
+- TFT работает в landscape-режиме;
+- заголовок `CYD Wi-Fi clock` отображается корректно;
+- плата дошла до состояния `Time synchronized`;
+- после получения сетевого времени отображается дата `2026-08-08`;
+- TFT остаётся стабильным при работе Wi-Fi и NTP.
+
+Итоговый статус лабораторного теста:
+
+```
+TEST_04_WIFI_CLOCK_PASS
+WIFI_CONNECTION_CONFIRMED
+NTP_TIME_SYNC_CONFIRMED
+DATE_OUTPUT_CONFIRMED
+TFT_WIFI_SIMULTANEOUS_OPERATION_CONFIRMED
+```
+
+Фото является документальным подтверждением состояния дисплея в момент съёмки. Полная работоспособность скетча, включая обновление времени, подтверждена фактическим запуском пользователя.
+
 Файл программы: [`04_wifi_clock.ino`](04_wifi_clock.ino)
 
 Пример объединяет:
@@ -12,8 +40,8 @@
 ## Требования
 
 - успешно работает пример [01_display_test](../01_display_test/README.md);
-- установлены `TFT_eSPI` и `CYD_Board`;
-- применена конфигурация TFT_eSPI;
+- установлены [`TFT_eSPI`](../../docs/tft-espi-installation.md) и [`CYD_Board`](../../libraries/CYD_Board/README.md);
+- применена конфигурация [`config/tft_espi/User_Setup.h`](../../config/tft_espi/User_Setup.h) по [инструкции TFT_eSPI](../../docs/tft-espi-installation.md);
 - доступна сеть Wi-Fi 2,4 ГГц с выходом в интернет;
 - создан локальный файл `secrets.h`.
 
@@ -23,19 +51,19 @@ ESP32 этой платы не подключается к сети 5 ГГц б�
 
 В папке примера уже есть:
 
-```text
+```
 secrets.example.h
 ```
 
 Скопируйте его как:
 
-```text
+```
 secrets.h
 ```
 
 и заполните:
 
-```cpp
+```
 #pragma once
 
 #define WIFI_SSID "имя_вашей_сети"
@@ -48,14 +76,14 @@ secrets.h
 
 В исходном примере установлено время UTC:
 
-```cpp
+```
 constexpr long GMT_OFFSET_SECONDS = 0;
 constexpr int DAYLIGHT_OFFSET_SECONDS = 0;
 ```
 
 Для постоянного смещения измените `GMT_OFFSET_SECONDS`. Например, UTC+3:
 
-```cpp
+```
 constexpr long GMT_OFFSET_SECONDS = 3 * 3600;
 ```
 
@@ -73,26 +101,26 @@ constexpr long GMT_OFFSET_SECONDS = 3 * 3600;
 
 Сначала экран показывает:
 
-```text
+```
 Connecting to Wi-Fi...
 ```
 
 После подключения и запуска синхронизации:
 
-```text
+```
 Time synchronized
 ```
 
 Затем крупно отображается время:
 
-```text
+```
 12:34:56
 ```
 
 и ниже дата:
 
-```text
-2026-08-06
+```
+2026-08-08
 ```
 
 Обновление выполняется примерно четыре раза в секунду.
@@ -125,7 +153,7 @@ Time synchronized
 
 Проверьте доступ в интернет, DNS и доступность NTP. Используются серверы:
 
-```text
+```
 pool.ntp.org
 time.nist.gov
 ```

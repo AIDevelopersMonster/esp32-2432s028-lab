@@ -11,9 +11,12 @@
  * Documentation:
  *   examples/05_bluetooth_classic_test/README.md
  *
+ * Video:
+ *   ESP32-2432S028R / CYD: проверка Bluetooth Classic SPP — двусторонняя связь с телефоном
+ *   https://youtube.com/shorts/fpp9V5QYG7o
+ *
  * Status:
- *   READY FOR HARDWARE TEST
- *   Not yet marked VERIFIED until the real board is tested.
+ *   VERIFIED WORKING on 2026-08-08
  *
  * Hardware:
  *   - Board: ESP32-2432S028R / CYD

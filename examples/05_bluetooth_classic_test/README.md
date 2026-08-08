@@ -8,6 +8,8 @@
 
 Видеоотчёт:
 
+**ESP32-2432S028R / CYD: проверка Bluetooth Classic SPP — двусторонняя связь с телефоном**
+
 - https://youtube.com/shorts/fpp9V5QYG7o
 
 Фактический запуск на ESP32-2432S028R подтверждён пользователем.

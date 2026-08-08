@@ -1,8 +1,8 @@
 # ESP32-2432S028R Lab
 
-Практическая лаборатория для платы **ESP32-2432S028R**, известной как **Cheap Yellow Display (CYD)**: ESP32-WROOM-32, цветной TFT-дисплей 2,8 дюйма, резистивный тачскрин, microSD, RGB-светодиод, фоторезистор и аудиовыход на одной плате.
+Практическая лаборатория для платы **ESP32-2432S028R**, известной как **Cheap Yellow Display (CYD)**: ESP32-WROOM-32, цветной TFT-дисплей 2,8 дюйма, резистивный тачскрин, microSD, RGB-светодиод, фоторезистор, аудиовыход, Wi-Fi и Bluetooth на одной плате.
 
-Проект построен как последовательность проверяемых примеров: сначала базовое оборудование, затем дисплей, тачскрин, карта памяти и сетевые приложения. Корневой пример собирается через PlatformIO; скетчи из `examples/` можно запускать в Arduino IDE.
+Проект построен как последовательность проверяемых примеров: сначала базовое оборудование, затем дисплей, тачскрин, карта памяти, Wi-Fi и Bluetooth. Корневой пример собирается через PlatformIO; скетчи из `examples/` можно запускать в Arduino IDE.
 
 > Проект рассчитан прежде всего на распространённую ревизию **ESP32-2432S028R с ILI9341 и XPT2046**. Перед подключением внешних устройств сравните маркировку и разводку своей платы: у продавцов встречаются близкие ревизии с отличиями.
 
@@ -28,7 +28,7 @@
 
 Первый автоматизированный шаг HW-01 запускается из корня репозитория:
 
-```bash
+```
 python tools/run_hw01_identity.py
 ```
 
@@ -39,8 +39,11 @@ python tools/run_hw01_identity.py
 - самотест дисплея, подсветки, RGB-светодиода, кнопки BOOT и LDR;
 - тест ILI9341 с цветными полями;
 - вывод необработанных координат XPT2046 для последующей калибровки;
-- тест microSD и вывод списка файлов;
-- простой сетевой экран часов через NTP;
+- безопасный read-only тест microSD;
+- отдельная лаборатория записи, readback, append и вложенных каталогов на microSD;
+- простой сетевой экран часов через Wi-Fi и NTP;
+- тест Bluetooth Classic SPP с двусторонним serial-обменом;
+- BLE GATT-тест с advertising, READ, WRITE и NOTIFY;
 - общая библиотека `CYD_Board` с именованными выводами платы;
 - конфигурация TFT_eSPI для Arduino IDE и PlatformIO;
 - автоматическая проверка сборки через GitHub Actions.
@@ -68,7 +71,7 @@ python tools/run_hw01_identity.py
 
 Команды терминала:
 
-```bash
+```
 pio run
 pio run -t upload
 pio device monitor -b 115200
@@ -87,19 +90,27 @@ pio device monitor -b 115200
 3. скопируйте `libraries/CYD_Board` в каталог библиотек Arduino;
 4. замените `TFT_eSPI/User_Setup.h` файлом `config/tft_espi/User_Setup.h`;
 5. выберите плату **ESP32 Dev Module**;
-6. откройте нужный скетч из `examples/`.
+6. используйте проверенный профиль Flash `40 MHz / DIO`, Upload Speed `115200`;
+7. откройте нужный скетч из `examples/`.
+
+Для Bluetooth Classic и BLE отдельные сторонние библиотеки не нужны: используемые Bluetooth API входят в Arduino core для ESP32.
 
 ## Примеры
 
 | Каталог | Назначение | Дополнительные библиотеки |
 |---|---|---|
-| `00_board_test` | RGB LED, LDR, BOOT | нет |
-| `01_display_test` | первичная проверка ILI9341 | TFT_eSPI |
-| `02_touch_test` | необработанные X/Y/Z тачскрина | TFT_eSPI, XPT2046_Touchscreen |
-| `03_sd_test` | инициализация microSD, список файлов | стандартная SD |
-| `04_wifi_clock` | Wi-Fi и часы NTP | TFT_eSPI |
+| `00_board_test` | RGB LED, LDR, BOOT | CYD_Board |
+| `01_display_test` | первичная проверка ILI9341 | CYD_Board, TFT_eSPI |
+| `02_touch_test` | необработанные X/Y/Z тачскрина | CYD_Board, TFT_eSPI, XPT2046_Touchscreen |
+| `03_sd_test` | безопасная инициализация microSD и список файлов | CYD_Board, стандартные SPI/SD |
+| `03_sd_rw_lab` | каталоги, запись, readback и append | CYD_Board, стандартные SPI/SD |
+| `04_wifi_clock` | Wi-Fi и часы NTP | CYD_Board, TFT_eSPI, стандартные WiFi/time |
+| `05_bluetooth_classic_test` | Bluetooth Classic SPP, передача в обе стороны | стандартный BluetoothSerial |
+| `06_ble_test` | BLE advertising и GATT READ/WRITE/NOTIFY | стандартный BLE API ESP32 |
 
-Для `04_wifi_clock` переименуйте `secrets.example.h` в `secrets.h` и укажите данные своей сети. Файл `secrets.h` исключён из Git.
+Для `04_wifi_clock` скопируйте `secrets.example.h` в `secrets.h` и укажите данные своей сети. Файл `secrets.h` не должен публиковаться в Git.
+
+Bluetooth-примеры не используют внешние GPIO и предназначены для проверки встроенного радиотракта ESP32. На момент добавления они имеют статус `READY FOR HARDWARE TEST`; статус `VERIFIED` ставится только после реального запуска.
 
 ## Распиновка
 
@@ -124,10 +135,11 @@ pio device monitor -b 115200
 - GPIO 21 управляет подсветкой и одновременно выведен на одном из разъёмов некоторых ревизий.
 - Тачскрин и microSD разведены на разные группы выводов. При объединении их в одном приложении заранее продумайте распределение аппаратных SPI-контроллеров либо программный SPI.
 - Цвета, поворот и калибровка тачскрина могут отличаться между партиями.
+- Отдельные Bluetooth-тесты не доказывают устойчивую совместную работу Wi-Fi + Bluetooth Classic + BLE под высокой нагрузкой.
 
 ## Структура репозитория
 
-```text
+```
 esp32-2432s028-lab/
 ├── src/                      # основной PlatformIO-самотест
 ├── libraries/CYD_Board/      # библиотека распиновки и помощников
@@ -144,6 +156,7 @@ esp32-2432s028-lab/
 - демонстрация LVGL 9;
 - меню диагностики всех встроенных узлов;
 - работа дисплея, тачскрина и microSD в одном приложении;
+- совместный radio coexistence-тест Wi-Fi/Bluetooth после отдельных PASS;
 - веб-панель управления;
 - интеграция с MQTT и Home Assistant;
 - примеры датчиков через свободные GPIO/I²C;
@@ -151,6 +164,8 @@ esp32-2432s028-lab/
 
 ## Источники и полезные материалы
 
+- Arduino ESP32 Bluetooth Classic: <https://docs.espressif.com/projects/arduino-esp32/en/latest/api/bluetooth.html>
+- ESP-IDF Bluetooth API: <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/index.html>
 - NuttX board documentation: <https://nuttx.apache.org/docs/latest/platforms/xtensa/esp32/boards/esp32-2432S028/index.html>
 - Random Nerd Tutorials pinout: <https://randomnerdtutorials.com/esp32-cheap-yellow-display-cyd-pinout-esp32-2432s028r/>
 - LVGL Arduino integration: <https://docs.lvgl.io/master/integration/frameworks/arduino.html>

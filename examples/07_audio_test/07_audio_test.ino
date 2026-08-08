@@ -53,10 +53,10 @@ constexpr uint8_t WAVE_SAMPLES = 32;
 // Centered 8-bit sine-like table, intentionally kept away from 0 and 255
 // to reduce the chance of large full-scale steps in the simple lab test.
 const uint8_t SINE_TABLE[WAVE_SAMPLES] = {
-    128, 146, 163, 179, 194, 207, 217, 225,
-    230, 232, 230, 225, 217, 207, 194, 179,
-    128, 110,  93,  77,  62,  49,  39,  31,
-     26,  24,  26,  31,  39,  49,  62,  77};
+    128, 148, 168, 186, 202, 215, 225, 230,
+    232, 230, 225, 215, 202, 186, 168, 148,
+    128, 108,  88,  70,  54,  41,  31,  26,
+     24,  26,  31,  41,  54,  70,  88, 108};
 
 // Generate an approximate sine tone by stepping the ESP32 8-bit DAC.
 // Timing is intentionally simple and blocking: this is a hardware test,

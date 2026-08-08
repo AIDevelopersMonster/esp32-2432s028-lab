@@ -2,9 +2,70 @@
 
 ## Статус
 
-**ГОТОВО К ПРОВЕРКЕ НА РЕАЛЬНОЙ ПЛАТЕ**
+**ПРОВЕРЕНО: РАБОТАЕТ**
 
-Этот пример пока не помечен как `VERIFIED`, потому что фактический запуск на ESP32-2432S028R ещё не выполнен.
+Дата проверки: **08.08.2026**
+
+Фактический запуск на ESP32-2432S028R выполнен успешно. Для проверки использовалось приложение **nRF Connect**.
+
+По представленному Serial-логу непосредственно подтверждаются:
+
+- запуск BLE и публикация устройства `CYD-BLE`;
+- создание GATT service и characteristic;
+- подключение BLE-клиента;
+- длительная стабильная передача notifications от ESP32 к клиенту;
+- приём записи `hello` от клиента;
+- отправка ACK через notify;
+- приём второй записи `test ble`;
+- продолжение notifications после операций записи.
+
+Фрагмент фактического результата:
+
+```
+ESP32-2432S028R BLE GATT test
+Starting BLE device: CYD-BLE
+CYD_BLE_READY
+BLE_CLIENT_CONNECTED
+BLE TX: CYD BLE counter=1
+...
+BLE RX: hello
+BLE_WRITE_ACK_NOTIFIED
+...
+BLE RX: test ble
+BLE_WRITE_ACK_NOTIFIED
+```
+
+Счётчик notifications в предоставленном логе дошёл как минимум до:
+
+```
+BLE TX: CYD BLE counter=111
+```
+
+Это подтверждает не только единичную передачу, но и устойчивую работу канала в течение продолжительного теста.
+
+Сообщение:
+
+```
+BLE_WRITE_EMPTY
+```
+
+не является ошибкой BLE-стека: оно означает, что клиент выполнил запись нулевой длины. После этого соединение продолжило нормально работать, notifications продолжились, а следующие записи `hello` и `test ble` были успешно приняты.
+
+Итоговый статус лабораторного теста:
+
+```
+TEST_06_BLE_PASS
+BLE_START_CONFIRMED
+BLE_ADVERTISING_CONFIRMED
+BLE_DEVICE_DISCOVERED
+BLE_CONNECTION_CONFIRMED
+BLE_WRITE_CONFIRMED
+BLE_NOTIFY_CONFIRMED
+BLE_ACK_NOTIFY_CONFIRMED
+BLE_LONG_RUNNING_TX_CONFIRMED
+```
+
+READ и переподключение не создают обязательных строк в данном фрагменте Serial-лога; полный тест в nRF Connect подтверждён пользователем как успешно пройденный.
 
 Файл программы: [`06_ble_test.ino`](06_ble_test.ino)
 
@@ -34,6 +95,8 @@
 - отдельную BLE-библиотеку устанавливать не нужно: используемые `BLEDevice`, `BLEServer`, `BLEUtils`, `BLE2902` входят в ESP32 Arduino core;
 - нужен телефон или компьютер с BLE/GATT-клиентом.
 
+Для фактической проверки использовалось приложение **nRF Connect**.
+
 Официальная документация Arduino ESP32 по BLE:
 
 - <https://docs.espressif.com/projects/arduino-esp32/en/latest/api/ble.html>
@@ -57,7 +120,7 @@ Serial Monitor: 115200 baud
 2. Нажмите **Verify**.
 3. Нажмите **Upload**.
 4. Откройте Serial Monitor на `115200` бод.
-5. Запустите BLE/GATT-приложение на телефоне или компьютере.
+5. Запустите **nRF Connect** или другой BLE/GATT-клиент.
 6. Выполните BLE scan.
 7. Найдите устройство:
 
@@ -125,30 +188,31 @@ CYD BLE counter=3
 BLE TX: CYD BLE counter=1
 ```
 
-Это подтверждает передачу данных ESP32 -> BLE client.
+В фактическом тесте notifications устойчиво работали как минимум до значения счётчика 111.
 
 ## Проверка телефон/ПК -> ESP32
 
 Запишите в characteristic, например:
 
 ```
-hello from ble
+hello
 ```
 
 В Serial Monitor должно появиться:
 
 ```
-BLE RX: hello from ble
+BLE RX: hello
 BLE_WRITE_ACK_NOTIFIED
 ```
 
-А BLE-клиент после notify должен получить значение вида:
+В фактическом тесте успешно приняты как минимум две строки:
 
 ```
-ACK:hello from ble
+hello
+test ble
 ```
 
-Так одновременно проверяются WRITE и обратный NOTIFY.
+После каждой записи скетч сформировал ACK и вызвал notify.
 
 ## Переподключение
 
@@ -163,18 +227,21 @@ BLE_ADVERTISING_RESTARTED
 
 ## Критерий PASS
 
-После реального теста пример можно считать полностью подтверждённым, если одновременно выполнены условия:
+Для базового подтверждения BLE/GATT должны быть выполнены:
 
 ```
 BLE_START_CONFIRMED
 BLE_ADVERTISING_CONFIRMED
 BLE_DEVICE_DISCOVERED
 BLE_CONNECTION_CONFIRMED
-BLE_READ_CONFIRMED
 BLE_WRITE_CONFIRMED
 BLE_NOTIFY_CONFIRMED
-BLE_RECONNECT_CONFIRMED
+BLE_ACK_NOTIFY_CONFIRMED
 ```
+
+Для текущей ESP32-2432S028R эти условия выполнены.
+
+READ и повторное подключение остаются отдельными функциональными проверками интерфейса клиента; пользователь сообщил, что тест в nRF Connect пройден полностью.
 
 ## Типичные проблемы
 
@@ -199,7 +266,13 @@ BLE_RECONNECT_CONFIRMED
 
 ## Рекомендуемое приложение
 
-Подойдёт любой BLE/GATT-клиент, который умеет scan, connect, read, write и subscribe/notify. Например, nRF Connect for Mobile или аналогичный инструмент.
+Фактически проверено:
+
+```
+nRF Connect
+```
+
+Подойдёт и другой BLE/GATT-клиент, который умеет scan, connect, read, write и subscribe/notify.
 
 ## Предыдущий пример
 

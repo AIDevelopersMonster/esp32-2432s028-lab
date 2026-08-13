@@ -2,117 +2,201 @@
  * ESP32-2432S028R / Cheap Yellow Display (CYD)
  * ------------------------------------------------------------
  * Example: 07_audio_test
- * Purpose: verify the board audio path driven from ESP32 DAC2 / GPIO26.
+ *
+ * Purpose:
+ *   Conservative hardware test of the onboard audio path:
+ *
+ *     ESP32 GPIO26 / DAC2 -> onboard 8002A-family amplifier -> P4 -> speaker
+ *
+ * IMPORTANT:
+ *   This version intentionally uses a VERY LOW DAC amplitude (+/-2 DAC codes)
+ *   because higher audio levels caused USB/UART instability on the tested board.
+ *
+ *   TFT/backlight and CYD_Board initialization are intentionally NOT used here,
+ *   so the test isolates the audio path as much as possible.
+ *
+ * Hardware:
+ *   - Board: ESP32-2432S028R / CYD
+ *   - Audio source: GPIO26 / DAC2
+ *   - Speaker: 8 ohm, connected only to the board speaker connector P4
+ *   - Do NOT connect either speaker lead to GND
+ *
+ * Arduino IDE profile:
+ *   - Board: ESP32 Dev Module
+ *   - CPU Frequency: 240 MHz
+ *   - Flash Frequency: 40 MHz
+ *   - Flash Mode: DIO
+ *   - Flash Size: 4 MB
+ *   - PSRAM: Disabled
+ *   - Upload Speed: 115200
+ *   - Serial Monitor: 115200
+ *
+ * Test sequence:
+ *   1. 440 Hz, 500 ms
+ *   2. 880 Hz, 500 ms
+ *   3. 1760 Hz, 500 ms
+ *   4. Audio stops
+ *   5. ESP32 prints "ESP32 ALIVE" once per second
+ *
+ * Expected result:
+ *   - Three different tones are audible.
+ *   - After the tones, the ESP32 continues running.
+ *   - millis() in ESP32 ALIVE messages must continue increasing.
  *
  * Project:
  *   https://github.com/AIDevelopersMonster/esp32-2432s028-lab
- *
- * Documentation:
- *   examples/07_audio_test/README.md
- *
- * Status:
- *   READY FOR HARDWARE TEST
- *   Do not mark VERIFIED until the real board audio output is heard or
- *   otherwise measured on the actual ESP32-2432S028R.
- *
- * Hardware profile:
- *   - Board: ESP32-2432S028R / CYD
- *   - Audio signal pin in this project: GPIO26
- *   - ESP32 GPIO26 is DAC2 on the original ESP32
- *   - No external Arduino library is required
- *
- * Test sequence:
- *   1. Silence / center level
- *   2. 440 Hz sine-like DAC waveform
- *   3. 880 Hz sine-like DAC waveform
- *   4. 1760 Hz sine-like DAC waveform
- *   5. Short silence, then repeat
- *
- * Expected result:
- *   Three clearly different tones should be audible from the board audio
- *   output/speaker path if the tested board revision contains the expected
- *   audio hardware and a suitable speaker/load is connected.
- *
- * Serial Monitor:
- *   115200 baud
- *
- * Important safety / scope notes:
- *   - Do not connect GPIO26 directly to a low-impedance speaker unless the
- *     board audio circuit is known to provide the required driver/amplifier.
- *   - Use the board's intended audio connector/path for the tested revision.
- *   - This sketch verifies signal generation and the board audio path; it is
- *     not an audio fidelity, power, THD or calibrated amplitude test.
  */
 
 #include <Arduino.h>
-#include <CYD_Board.h>
 
-// Number of DAC samples used for one waveform period.
+// -----------------------------------------------------------------------------
+// Hardware configuration
+// -----------------------------------------------------------------------------
+
+constexpr uint8_t AUDIO_PIN = 26;       // ESP32 DAC2
 constexpr uint8_t WAVE_SAMPLES = 32;
 
-// Centered 8-bit sine-like table, intentionally kept away from 0 and 255
-// to reduce the chance of large full-scale steps in the simple lab test.
-const uint8_t SINE_TABLE[WAVE_SAMPLES] = {
-    128, 148, 168, 186, 202, 215, 225, 230,
-    232, 230, 225, 215, 202, 186, 168, 148,
-    128, 108,  88,  70,  54,  41,  31,  26,
-     24,  26,  31,  41,  54,  70,  88, 108};
+// Very conservative output level.
+// Actual DAC output range during this test is approximately 126..130.
+constexpr uint8_t AUDIO_AMPLITUDE = 2;
 
-// Generate an approximate sine tone by stepping the ESP32 8-bit DAC.
-// Timing is intentionally simple and blocking: this is a hardware test,
-// not a production audio engine.
-void playDacTone(uint16_t frequencyHz, uint32_t durationMs) {
-  const uint32_t sampleRate = static_cast<uint32_t>(frequencyHz) * WAVE_SAMPLES;
-  const uint32_t samplePeriodUs = 1000000UL / sampleRate;
-  const uint32_t totalSamples = (static_cast<uint64_t>(sampleRate) * durationMs) / 1000UL;
+// Tone timing.
+constexpr uint32_t TONE_DURATION_MS = 500;
+constexpr uint32_t PAUSE_BETWEEN_TONES_MS = 1500;
 
-  Serial.printf("AUDIO_TONE_START frequency=%uHz duration=%lums\n",
-                frequencyHz,
-                static_cast<unsigned long>(durationMs));
+// -----------------------------------------------------------------------------
+// Normalized sine-like waveform.
+//
+// Values are approximately -16..+16.
+// They are scaled at runtime by AUDIO_AMPLITUDE / 16.
+//
+// With AUDIO_AMPLITUDE = 2:
+//   DAC output is approximately 128 +/- 2.
+// -----------------------------------------------------------------------------
+
+const int8_t SINE_SHAPE[WAVE_SAMPLES] = {
+     0,  3,  6,  9, 11, 13, 15, 16,
+    16, 16, 15, 13, 11,  9,  6,  3,
+     0, -3, -6, -9,-11,-13,-15,-16,
+   -16,-16,-15,-13,-11, -9, -6, -3
+};
+
+// -----------------------------------------------------------------------------
+// Generate one low-level DAC tone.
+//
+// This is intentionally simple and blocking.
+// It is a hardware bring-up test, not a production audio engine.
+// -----------------------------------------------------------------------------
+
+void playDacTone(uint16_t frequencyHz,
+                 uint32_t durationMs,
+                 uint8_t amplitudeCodes) {
+
+  const uint32_t sampleRate =
+      static_cast<uint32_t>(frequencyHz) * WAVE_SAMPLES;
+
+  const uint32_t samplePeriodUs =
+      1000000UL / sampleRate;
+
+  const uint32_t totalSamples =
+      (static_cast<uint64_t>(sampleRate) * durationMs) / 1000UL;
+
+  Serial.printf(
+      "START %u Hz amplitude=+/-%u\n",
+      frequencyHz,
+      amplitudeCodes
+  );
 
   for (uint32_t i = 0; i < totalSamples; ++i) {
-    dacWrite(cyd::AUDIO_PIN, SINE_TABLE[i % WAVE_SAMPLES]);
+
+    const int16_t sample =
+        128 +
+        (static_cast<int16_t>(
+             SINE_SHAPE[i % WAVE_SAMPLES]
+         ) * amplitudeCodes) / 16;
+
+    dacWrite(AUDIO_PIN, static_cast<uint8_t>(sample));
     delayMicroseconds(samplePeriodUs);
   }
 
-  // Return to the middle DAC code between tones to avoid a large DC step.
-  dacWrite(cyd::AUDIO_PIN, 128);
-  Serial.printf("AUDIO_TONE_END frequency=%uHz\n", frequencyHz);
+  // Return DAC to midpoint after each tone.
+  dacWrite(AUDIO_PIN, 128);
+
+  Serial.printf(
+      "END %u Hz amplitude=+/-%u\n",
+      frequencyHz,
+      amplitudeCodes
+  );
 }
+
+// -----------------------------------------------------------------------------
+// Setup
+// -----------------------------------------------------------------------------
 
 void setup() {
   Serial.begin(115200);
-  delay(500);
+  delay(1000);
 
-  // Initialize the common CYD hardware state. The audio pin itself is driven
-  // by the ESP32 DAC peripheral through dacWrite().
-  cyd::beginBasicHardware();
+  // Keep DAC at midpoint before starting audio.
+  dacWrite(AUDIO_PIN, 128);
 
   Serial.println();
-  Serial.println("ESP32-2432S028R GPIO26 DAC audio test");
-  Serial.printf("Audio/DAC pin: GPIO %u\n", cyd::AUDIO_PIN);
-  Serial.println("AUDIO_TEST_READY");
-  Serial.println("Expected sequence: 440 Hz -> 880 Hz -> 1760 Hz -> repeat");
+  Serial.println("================================");
+  Serial.println("CYD LOW-LEVEL AUDIO TEST");
+  Serial.println("ESP32-2432S028R");
+  Serial.println("GPIO26 / DAC2");
+  Serial.printf("DAC amplitude: +/-%u codes\n", AUDIO_AMPLITUDE);
+  Serial.println("TFT/backlight: NOT initialized");
+  Serial.println("================================");
 
-  // Mid-scale idle value before the first tone.
-  dacWrite(cyd::AUDIO_PIN, 128);
+  delay(1000);
+
+  playDacTone(
+      440,
+      TONE_DURATION_MS,
+      AUDIO_AMPLITUDE
+  );
+
+  delay(PAUSE_BETWEEN_TONES_MS);
+
+  playDacTone(
+      880,
+      TONE_DURATION_MS,
+      AUDIO_AMPLITUDE
+  );
+
+  delay(PAUSE_BETWEEN_TONES_MS);
+
+  playDacTone(
+      1760,
+      TONE_DURATION_MS,
+      AUDIO_AMPLITUDE
+  );
+
+  // Return to quiet midpoint.
+  dacWrite(AUDIO_PIN, 128);
+
+  Serial.println("AUDIO TEST FINISHED");
+  Serial.println("ESP32 should now remain running.");
 }
 
+// -----------------------------------------------------------------------------
+// Main loop.
+//
+// No more audio is generated.
+// This heartbeat lets us see whether the ESP32 itself remains alive even if
+// the onboard USB/UART path becomes unstable.
+// -----------------------------------------------------------------------------
+
 void loop() {
-  Serial.println("AUDIO_SEQUENCE_START");
+  static uint32_t lastReportMs = 0;
 
-  playDacTone(440, 1500);
-  delay(400);
+  if (millis() - lastReportMs >= 1000) {
+    lastReportMs = millis();
 
-  playDacTone(880, 1500);
-  delay(400);
-
-  playDacTone(1760, 1500);
-  delay(400);
-
-  Serial.println("AUDIO_SEQUENCE_COMPLETE");
-
-  // A longer pause makes sequence boundaries easy to hear and record.
-  dacWrite(cyd::AUDIO_PIN, 128);
-  delay(2500);
+    Serial.printf(
+        "ESP32 ALIVE: %lu ms\n",
+        static_cast<unsigned long>(millis())
+    );
+  }
 }
